@@ -1,6 +1,6 @@
-function [Lfp] = trialLFP(o,varargin)
+function [Spike] = trialSpike(o,varargin)
 
-%  loads lfp data for a trial, onseted to particular trial
+%  loads spike data across trials, onseted to particular trial
 %  timepoints
 %
 % Input:
@@ -9,15 +9,15 @@ function [Lfp] = trialLFP(o,varargin)
 % Optional arguments:
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
 %   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
-%   onsetvector? - maybe a way of inputing an optional alingment time points, like
-%   saccade times, onseted to start of trial
+%   onsetvector? - maybe a way of inputing an optional alingment, like
+%   saccade times
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
 %
 % Output
-%   Lfp - the local field potential signal(s) (mV?) in ms [TRIAL,NCH,TIME] or [TRIAL,TIME]
+%   spike - a cell array of spike times in ms for each trial
 %
-% 2023-01-03 - Maureen Hagan <maureen.hagan@monash.edu>
+% 2023-01-05 - Maureen Hagan <maureen.hagan@monash.edu>
 
 % not sure the best way to deal with onsetments. in ns, stimuli and
 % behaviours are a bit different. also, saccade times are something
@@ -25,7 +25,7 @@ function [Lfp] = trialLFP(o,varargin)
 % and we'll go from there. if no onset given, will onset to firstFrame of
 % the trial. 
 
-% also = successful trials arent defined in the marmlab object. so optional
+% also = successful trials arent defined in the marmolab object. so optional
 % vector input to account for this.
 
 
@@ -41,14 +41,12 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.channels), channels = 1:o.lfp.numChannels; end
-
-lfp = o.lfp.raw'; % trials x samples > will need resizing for more than one channel
+if isempty(args.channels), channels = 1:o.spikes.numChannels; end
 
 %find which trials to use
 if isempty(args.trind)
     if isprop(o,'complete'), trind = o.complete;
-    else, trind = true(1,o.lfp.numTrials);
+    else, trind = true(1,o.spikes.numTrials);
     end
 else, trind = args.trind;
 end
@@ -56,27 +54,34 @@ end
 % get an onset time in ms for each trial
 if isempty(args.onsetvector)
     if ~isempty(args.onset)
-    	onsets = (o.meta.(args.onset).startTime.time - o.meta.cic.firstFrame.time).*1e3; % onset time to the nearest ms
+    	onsets = o.meta.(args.onset).startTime.time - o.meta.cic.firstFrame.time; % onset time to the nearest s
     else
-        onsets = ones(1,o.lfp.numTrials);
+        onsets = ones(1,o.spikes.numTrials);
     end
 else, onsets = args.onsetvector;
 end
+onsets = onsets(trind);
 
-start = onsets + args.bn(1); stop = onsets + args.bn(2);
+Spike = cell(1,numel(channels));
 
-if max(stop(trind)) > o.lfp.numSamples ||  min(start(trind)) < 1
-    error('your window is bigger than your trial!') 
-end
-
-Lfp = nan(sum(trind), o.lfp.numChannels, diff(args.bn)+1);
+trials = 1:o.spikes.numTrials;
+trials = trials(trind);
+bn = args.bn./1e3;
 
 for ich = channels
-Lfp(:,ich,:) = lfp(trind,start:stop); % will need indexing for more than one channel!
-    
+    Spike{ich} = cell(1,sum(trind));
+    for itr = 1:numel(trials)
+        trial = trials(itr);
+        start = onsets(itr) + bn(1);
+        timestamps = o.spikes.spk{trial} - start;
+        Spike{ich}{itr} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
+        % can do better with channels - deal with later
+    end
 end
 
-Lfp = squeeze(Lfp);
+if numel(channels) == 1 
+    Spike = Spike{1};
+end
 
 end
 
