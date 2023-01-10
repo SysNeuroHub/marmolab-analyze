@@ -31,17 +31,30 @@ function [Spike] = trialSpike(o,varargin)
 
 p = inputParser();
 p.KeepUnmatched = true;
-p.addParameter('channels',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numChannels),'<=',max(o.lfp.numChannels)}));
+p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
+p.addParameter('units',[],@(x) isnumeric(x) || isempty(x));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
-p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
+p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
 p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
 
 p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.channels), channels = 1:o.spikes.numChannels; end
+if isempty(args.channels)
+    args.channels = 1:o.spikes.numChannels;
+end
+
+% get indexes for all channels/units
+tmp = squeeze(any(cellfun(@(x) ~isempty(x),o.spikes.spk),2));
+[all_units,all_channels] = ind2sub(size(tmp),find(tmp));
+chanlist = o.spikes.chanIds(all_channels);
+ix = ismember(chanlist,args.channels);
+
+chan_ind = all_channels(ix); unit_ind = all_units(ix);
+
+% find the overalp with requested channels
 
 %find which trials to use
 if isempty(args.trind)
@@ -62,24 +75,26 @@ else, onsets = args.onsetvector;
 end
 onsets = onsets(trind);
 
-Spike = cell(1,numel(channels));
+Spike = cell(1,numel(chan_ind));
 
 trials = 1:o.spikes.numTrials;
 trials = trials(trind);
 bn = args.bn./1e3;
 
-for ich = channels
+for ich = 1:numel(chan_ind)
+    channel = chan_ind(ich);
+    unit = unit_ind(ich);
     Spike{ich} = cell(1,sum(trind));
     for itr = 1:numel(trials)
         trial = trials(itr);
         start = onsets(itr) + bn(1);
-        timestamps = o.spikes.spk{trial} - start;
+        timestamps = o.spikes.spk{unit,trial,channel} - start;
         Spike{ich}{itr} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
         % can do better with channels - deal with later
     end
 end
 
-if numel(channels) == 1 
+if numel(chan_ind) == 1 
     Spike = Spike{1};
 end
 

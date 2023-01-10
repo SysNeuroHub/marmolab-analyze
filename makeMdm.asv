@@ -18,9 +18,9 @@ function d = makeMdm(varargin)
 p = inputParser();
 p.KeepUnmatched = true;
 p.addParameter('path','',@(x) ischar(x) || isempty(x)); % location of your data
-p.addParameter('subject','', @(x) ischar(x) || isempty(x));  % subject name
+p.addParameter('subject',''); % subject name
 p.addParameter('paradigm','',@(x) ischar(x) || isempty(x)); % paradigm name 
-p.addParameter('channels',[]);
+p.addParameter('channels',[],@(x) validateattributes(x,{'numeric'}));
 p.addParameter('analysis','',@(x) ischar(x) || isempty(x));
 p.addParameter('loadEye',true,@(x) validateattributes(x,{'logical'},{'scalar'}));
 p.addParameter('spikes',true,@(x) validateattributes(x,{'logical'},{'scalar'}));
@@ -46,7 +46,7 @@ savefilename = [args.path filesep args.subject '.' args.paradigm  '.mdm']; % sav
 
 % step 2 - load the behaviour
 
-d = marmodata.mdbase(filenames,'path', args.path, 'loadArgs', {'loadEye',args.loadEye});
+d = marmodata.mdbase(filenames,'loadArgs', {'loadEye',args.loadEye});
 
 save(savefilename,'d')
 disp('behaviour saved!')
@@ -64,8 +64,8 @@ end
 if ~isempty(args.channels)
     channels = args.channels;
     
-    for ich = 1:numel(channels)
-        channel = channels(ich);
+    for ich = channels
+        channel = channels(ich); % in case list of channels is non-sequential
         
         if args.spikes && strcmp(args.source,'ghetto')
             d = d.load('spikes',args.spikes,'source','ghetto','channels',channel,'reload', args.reload);
@@ -76,7 +76,7 @@ if ~isempty(args.channels)
         if args.lfp 
             d = d.load('lfp',args.lfp,'channels',channel,'reload', args.reload);
             save(savefilename,'d')
-            disp(['lfp data for ch ' num2str(channel) ' saved!'])
+            disp(['ghetto spike data for ch ' num2str(channel) ' saved!'])
         end
     end
 end

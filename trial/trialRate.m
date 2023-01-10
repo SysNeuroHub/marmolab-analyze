@@ -1,13 +1,13 @@
-function [Spike] = trialSpike(o,varargin)
+function Rate = trialRate(o,varargin)
 
-%  loads spike data across trials, onseted to particular trial
-%  timepoints
+%  Returns the spike rate for a set of trials from an mdbase object over a
+%  specified time bin
 %
 % Input:
 %   o = mdbase object with LFP data
 %
 % Optional arguments:
-%   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
+%   channels - channels to load data for (defaut: o.spike.numChannels)
 %   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
 %   onsetvector? - maybe a way of inputing an optional alingment, like
 %   saccade times
@@ -15,9 +15,10 @@ function [Spike] = trialSpike(o,varargin)
 %   bn - time bin around onset time
 %
 % Output
-%   spike - a cell array of spike times in ms for each trial
+%   Rate - a vector array of spike rates in spikes/sec for each trial over
+%   the specififed time window
 %
-% 2023-01-05 - Maureen Hagan <maureen.hagan@monash.edu>
+% 2023-01-10 - Maureen Hagan <maureen.hagan@monash.edu>
 
 % not sure the best way to deal with onsetments. in ns, stimuli and
 % behaviours are a bit different. also, saccade times are something
@@ -31,8 +32,7 @@ function [Spike] = trialSpike(o,varargin)
 
 p = inputParser();
 p.KeepUnmatched = true;
-p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
-p.addParameter('units',[],@(x) isnumeric(x) || isempty(x));
+p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x)); %validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numChannels),'<=',max(o.spikes.numChannels)}));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
@@ -48,14 +48,6 @@ else
     channels = args.channels;
 end
 
-% get indexes for all channels/units
-tmp = squeeze(any(cellfun(@(x) ~isempty(x),o.spikes.spk),2));
-[all_units,all_channels] = ind2sub(size(tmp),find(tmp));
-
-ix = ismember(args.channels,dta.chanIds);
-
-% find the overalp with requested channels
-
 %find which trials to use
 if isempty(args.trind)
     if isprop(o,'complete'), trind = o.complete;
@@ -64,37 +56,29 @@ if isempty(args.trind)
 else, trind = args.trind;
 end
 
-% get an onset time in ms for each trial
-if isempty(args.onsetvector)
-    if ~isempty(args.onset)
-    	onsets = o.meta.(args.onset).startTime.time - o.meta.cic.firstFrame.time; % onset time to the nearest s
-    else
-        onsets = ones(1,o.spikes.numTrials);
-    end
-else, onsets = args.onsetvector;
+spikes = trialSpike(o,'onset',args.onset,'trind', trind, 'channels', channels, 'bn',args.bn, 'onsetvector', args.onsetvector);
+
+if numel(spikes) == 1 
+    Spikes{1} = spikes;
+else
+    Spikes = spikes;
 end
-onsets = onsets(trind);
 
-Spike = cell(1,numel(channels));
+numChan = numel(Spikes);
+numTrial = numel(Spikes{1});
+% covert trial spikes to a rate (channels, trials)
+Rate = nan(numChan,numTrial);
 
-trials = 1:o.spikes.numTrials;
-trials = trials(trind);
-bn = args.bn./1e3;
+bn = args.bn;
 
-for ich = channels
-    Spike{ich} = cell(1,sum(trind));
-    for itr = 1:numel(trials)
-        trial = trials(itr);
-        start = onsets(itr) + bn(1);
-        timestamps = o.spikes.spk{trial} - start;
-        Spike{ich}{itr} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
-        % can do better with channels - deal with later
+for ich = 1:numChan
+    for itr = 1:numTrial
+        ind = Spikes{ich}{itr};
+        Rate(ich,itr) = length(ind)./diff(bn).*1e3;
     end
 end
 
 if numel(channels) == 1 
-    Spike = Spike{1};
-end
-
+    Rate = squeeze(Rate);
 end
 
