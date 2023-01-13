@@ -42,17 +42,23 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.channels)
-    args.channels = 1:o.spikes.numChannels;
+if isempty(args.channels) % if empty, load everything
+    args.channels = o.spikes.chanIds;
 end
 
 % get indexes for all channels/units
 tmp = squeeze(any(cellfun(@(x) ~isempty(x),o.spikes.spk),2));
-[all_units,all_channels] = ind2sub(size(tmp),find(tmp));
+
+if size(o.spikes.spk,1) > 1 % kilo sorted data with more than one unit, or one channel of data
+    [all_units,all_channels] = ind2sub(size(tmp),find(tmp));
+elseif size(o.spikes.spk,1) == 1 && size(o.spikes.spk,3) > 1 % more than one ghetto channel
+    [all_units,all_channels] = ind2sub(size(tmp'),find(tmp'));
+end
+
 chanlist = o.spikes.chanIds(all_channels);
 ix = ismember(chanlist,args.channels);
-
 chan_ind = all_channels(ix); unit_ind = all_units(ix);
+
 
 % find the overalp with requested channels
 

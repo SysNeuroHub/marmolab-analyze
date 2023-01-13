@@ -10,12 +10,13 @@ function [Lfp] = trialLFP(o,varargin)
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
 %   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
 %   onsetvector? - maybe a way of inputing an optional alingment time points, like
-%   saccade times, onseted to start of trial
+%   saccade times, onseted to start of trial > make sure its in ms from
+%   trial start!
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
 %
 % Output
-%   Lfp - the local field potential signal(s) (mV?) in ms [TRIAL,NCH,TIME] or [TRIAL,TIME]
+%   Lfp - the local field potential signal(s) (mV?) in ms [NCH, TRIAL,TIME] or [TRIAL,TIME]
 %
 % 2023-01-03 - Maureen Hagan <maureen.hagan@monash.edu>
 
@@ -31,7 +32,7 @@ function [Lfp] = trialLFP(o,varargin)
 
 p = inputParser();
 p.KeepUnmatched = true;
-p.addParameter('channels',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numChannels),'<=',max(o.lfp.numChannels)}));
+p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
@@ -41,9 +42,17 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.channels), channels = 1:o.lfp.numChannels; end
+if isempty(args.channels)
+    channels = o.lfp.chanIds; 
+else
+    channels = args.channels;
+end
 
-lfp = o.lfp.raw'; % trials x samples > will need resizing for more than one channel
+ix = ismember(o.lfp.chanIds,channels);
+chan_ind = 1:o.lfp.numChannels;
+chan_ind = chan_ind(ix); 
+
+lfps = o.lfp.raw; % trials x samples > will need resizing for more than one channel
 
 %find which trials to use
 if isempty(args.trind)
@@ -63,20 +72,22 @@ if isempty(args.onsetvector)
 else, onsets = args.onsetvector;
 end
 
-start = onsets + args.bn(1); stop = onsets + args.bn(2);
+start = round(onsets(trind)) + args.bn(1); stop = round(onsets(trind)) + args.bn(2);
 
-if max(stop(trind)) > o.lfp.numSamples ||  min(start(trind)) < 1
+if max(stop) > o.lfp.numSamples ||  min(start) < 1
     error('your window is bigger than your trial!') 
 end
 
-Lfp = nan(sum(trind), o.lfp.numChannels, diff(args.bn)+1);
-
-for ich = channels
-Lfp(:,ich,:) = lfp(trind,start:stop); % will need indexing for more than one channel!
-    
+if numel(chan_ind) == 1
+    Lfp(1,:,:) = lfps(start:stop,trind)';
+else
+    Lfp = nan(numel(chan_ind), sum(trind), diff(args.bn)+1);
+    for ich = 1:numel(chan_ind)
+        ch = chan_ind(ich);
+        trlfp = squeeze(lfps(:,trind,ch))';
+        Lfp(ich,:,:) = trlfp(:,start:stop); 
+    end
 end
-
-Lfp = squeeze(Lfp);
 
 end
 
