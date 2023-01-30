@@ -40,9 +40,18 @@ if isempty(args.paradigm), error('must provide a paradigm!'), end
 
 Files = dir([args.path filesep args.subject '.' args.paradigm '*' '.mat']); 
 
-filenames = Files.name; % need to fix this to deal with multiple files
+filenames = cell(1,numel(Files));
+for ifile = 1:numel(Files)
+    filenames{ifile} = Files(ifile).name;
+    
+end
 
-savefilename = [args.path filesep args.subject '.' args.paradigm  '.mdm']; % save name
+% file name to save out to:
+if strcmp(args.source,'kilo')
+    savefilename = [args.path filesep args.subject '.' args.paradigm  '.kilo.mdm']; % save name > for sorted data
+else
+    savefilename = [args.path filesep args.subject '.' args.paradigm  '.mdm']; % save name
+end
 
 if exist(savefilename,'file')% if it already exits, load it so you dont have to do everything again
     load(savefilename, '-mat', 'd'); 
@@ -51,12 +60,14 @@ else
 end 
 
 % step 2 - load the behaviour
+
 if args.loadEye
     d = d.load('loadEye',args.loadEye);
     
     save(savefilename,'d')
     disp('behaviour saved!')
 end
+
 % step 3 - if kilo, load spike data
 
 if args.spikes && strcmp(args.source,'kilo')
@@ -73,13 +84,13 @@ if ~isempty(args.channels)
     if args.spikes && strcmp(args.source,'ghetto')
         d = d.load('spikes',args.spikes,'source','ghetto','channels',channels,'reload', args.reload);
         save(savefilename,'d')
-        disp(['ghetto spike data saved!'])
+        disp('ghetto spike data saved!')
     end
     
     if args.lfp
         d = d.load('lfp',args.lfp,'channels',channels,'reload', args.reload);
         save(savefilename,'d')
-        disp(['lfp data saved!'])
+        disp('lfp data saved!')
     end
     
     % nice idea but this doesnt work
@@ -102,6 +113,7 @@ end
 
 
 % step 5: run the analysis file for the day
+
 if ~isempty(args.analysis)
     d = feval(args.analysis, d);
     save(savefilename,'d')
