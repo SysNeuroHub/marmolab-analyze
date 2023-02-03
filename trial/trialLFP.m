@@ -52,7 +52,7 @@ ix = ismember(o.lfp.chanIds,channels);
 chan_ind = 1:o.lfp.numChannels;
 chan_ind = chan_ind(ix); 
 
-lfps = o.lfp.raw; % trials x samples > will need resizing for more than one channel
+lfps = o.lfp.get; % trials x samples > will need resizing for more than one channel
 
 %find which trials to use
 if isempty(args.trind)
