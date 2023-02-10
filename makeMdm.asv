@@ -18,15 +18,16 @@ function d = makeMdm(varargin)
 p = inputParser();
 p.KeepUnmatched = true;
 p.addParameter('path','',@(x) ischar(x) || isempty(x)); % location of your data
-p.addParameter('subject',''); % subject name
+p.addParameter('subject','', @(x) ischar(x) || isempty(x));  % subject name
 p.addParameter('paradigm','',@(x) ischar(x) || isempty(x)); % paradigm name 
-p.addParameter('channels',[],@(x) validateattributes(x,{'numeric'}));
+p.addParameter('channels',[]);
 p.addParameter('analysis','',@(x) ischar(x) || isempty(x));
-p.addParameter('loadEye',true,@(x) validateattributes(x,{'logical'},{'scalar'}));
-p.addParameter('spikes',true,@(x) validateattributes(x,{'logical'},{'scalar'}));
-p.addParameter('source','ghetto',@(x) ischar(x) || isempty(x));
-p.addParameter('lfp',true,@(x) validateattributes(x,{'logical'},{'scalar'}));
+p.addParameter('eye',false,@(x) validateattributes(x,{'logical'},{'scalar'}));
+p.addParameter('spikes','',@(x)  @(x) ischar(x) || isempty(x));
+p.addParameter('lfp','',@(x)  @(x) ischar(x) || isempty(x));
+p.addParameter('cfg','',@(x)  @(x) ischar(x) || isempty(x)); % 'marmodata.cfgs.mbi.A1x32_100um' for centre array 'marmodata.cfgs.mbi.A1x32_Edge_100um'
 p.addParameter('reload',true,@(x) validateattributes(x,{'logical'},{'scalar'})); % eventually need to sort this out
+p.addParameter('overwrite',true,@(x) validateattributes(x,{'logical'},{'scalar'})); % eventually need to sort this out
 
 p.parse(varargin{:});
 
@@ -40,49 +41,119 @@ if isempty(args.paradigm), error('must provide a paradigm!'), end
 
 Files = dir([args.path filesep args.subject '.' args.paradigm '*' '.mat']); 
 
-filenames = Files.name; % need to fix this to deal with multiple files
-
-savefilename = [args.path filesep args.subject '.' args.paradigm  '.mdm']; % save name
-
-% step 2 - load the behaviour
-
-d = marmodata.mdbase(filenames,'loadArgs', {'loadEye',args.loadEye});
-
-save(savefilename,'d')
-disp('behaviour saved!')
-
-% step 3 - if kilo, load spike data
-
-if args.spikes && strcmp(args.source,'kilo')
-    d = d.load('spikes',args.spikes,'source','kilo');
-    save(savefilename,'d')
-    disp('kilo spike data saved!')
+filenames = cell(1,numel(Files));
+for ifile = 1:numel(Files)
+    filenames{ifile} = Files(ifile).name;
+    
 end
 
-% step 4 load lfps (and possibly spikes ghetto) channel by channel
+% file name to save out to:
+if strcmp(args.spikes,'kilo')
+    savefilename = [args.path filesep args.subject '.' args.paradigm  '.kilo.mdm']; % save name > for sorted data
+else
+    savefilename = [args.path filesep args.subject '.' args.paradigm  '.mdm']; % save name
+end
 
-if ~isempty(args.channels)
+% old method doesnt work for mulitple files - new branch should allow us to
+% do it at once... let see how it goes...
+
+% ns file only
+if ~args.eye && isempty(args.spikes) && isempty(args.lfp)
+    d = marmodata.mdbase(filenames,'path', args.path);
+    fprintf('returning ns file only!')
+end
+
+% eye data only
+if args.eye && isempty(args.spikes) && isempty(args.lfp)
+    d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.loadEye});
+    fprintf('returning eye and ns data only!')
+end
+
+% spiking only
+if args.eye && ~isempty(args.spikes) && isempty(args.lfp)
+     assert(~empty(args.cfg),'You must supply a cfg file for neural data!');
+     
+     if strcmp(args.spikes,'kilo')
+         
+         
+     elseif strcmp(args.spikes,'ghetto')
+    
     channels = args.channels;
     
-    for ich = channels
-        channel = channels(ich); % in case list of channels is non-sequential
-        
-        if args.spikes && strcmp(args.source,'ghetto')
-            d = d.load('spikes',args.spikes,'source','ghetto','channels',channel,'reload', args.reload);
-            save(savefilename,'d')
-            disp(['ghetto spike data for ch ' num2str(channel) ' saved!'])
-        end
-        
-        if args.lfp 
-            d = d.load('lfp',args.lfp,'channels',channel,'reload', args.reload);
-            save(savefilename,'d')
-            disp(['ghetto spike data for ch ' num2str(channel) ' saved!'])
-        end
-    end
+    d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.loadEye});
+    fprintf('returning ghetto spikes')
+     end
+
 end
+
+
+channels = args.channels;
+
+
+
+d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.loadEye,'spikes','ghetto','lfp','raw','channels',channels,'reload', args.reload});
+
+% if exist(savefilename,'file')% if it already exits, load it so you dont have to do everything again
+%     load(savefilename, '-mat', 'd'); 
+% else
+%     d = marmodata.mdbase(filenames,'path', args.path);
+% end 
+% 
+% % step 2 - load the behaviour
+% 
+% if args.loadEye
+%     d = d.load('loadEye',args.loadEye);
+%     
+%     save(savefilename,'d')
+%     disp('behaviour saved!')
+% end
+% 
+% % step 3 - if kilo, load spike data
+% 
+% if args.spikes && strcmp(args.source,'kilo')
+%     d = d.load('spikes',args.spikes,'source','kilo');
+%     save(savefilename,'d')
+%     disp('kilo spike data saved!')
+% end
+% 
+% % step 4 load lfps (and possibly spikes ghetto) channel by channel
+% 
+% if ~isempty(args.channels)
+%     channels = args.channels;
+% 
+%     if args.spikes && strcmp(args.source,'ghetto')
+%         d = d.load('spikes',args.spikes,'source','ghetto','channels',channels,'reload', args.reload);
+%         save(savefilename,'d')
+%         disp('ghetto spike data saved!')
+%     end
+%     
+%     if args.lfp
+%         d = d.load('lfp',args.lfp,'channels',channels,'reload', args.reload);
+%         save(savefilename,'d')
+%         disp('lfp data saved!')
+%     end
+%     
+%     % nice idea but this doesnt work
+% %     for ich = 1:numel(channels)
+% %         channel = channels(ich);
+% %         
+% %         if args.spikes && strcmp(args.source,'ghetto')
+% %             d = d.load('spikes',args.spikes,'source','ghetto','channels',channel,'reload', args.reload);
+% %             save(savefilename,'d')
+% %             disp(['ghetto spike data for ch ' num2str(channel) ' saved!'])
+% %         end
+% %         
+% %         if args.lfp 
+% %             d = d.load('lfp',args.lfp,'channels',channel,'reload', args.reload);
+% %             save(savefilename,'d')
+% %             disp(['lfp data for ch ' num2str(channel) ' saved!'])
+% %         end
+% %     end
+% end
 
 
 % step 5: run the analysis file for the day
+
 if ~isempty(args.analysis)
     d = feval(args.analysis, d);
     save(savefilename,'d')
