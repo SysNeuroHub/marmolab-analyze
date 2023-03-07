@@ -162,6 +162,8 @@ end
 
 if ~isempty(args.analysis)
     d = feval(args.analysis, d);
-    save(savefilename,'d')
-    disp('analysis file run and saved!')
+    fprintf('analysis file run!')
 end
+
+save(savefilename,'d','-v7.3')
+fprintf('everything saved!')
