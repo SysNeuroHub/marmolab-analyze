@@ -36,7 +36,7 @@ p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
-p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('trind',[]); 
 
 p.parse(varargin{:});
 
