@@ -73,7 +73,7 @@ nCell = length(Spike);
 nLFP =  size(lfpPhase,1);
 ntr = size(lfpPhase,2);
 
-if nFreq == 1, lfpPhase = reshape(lfpPhase, [1, size(lfpPhase,1), size(lfpPhase,2), size(lfpPhase,3)]); end
+if nFreq == 1, lfpPhase = reshape(lfpPhase, [1, size(lfpPhase,1), size(lfpPhase,2), size(lfpPhase,3]); end
 
 spikephase = cell(nFreq, nCell, nLFP);
 
