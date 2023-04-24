@@ -173,5 +173,5 @@ if ~isempty(args.analysis)
     fprintf('analysis file run!')
 end
 
-save(savefilename,'d')
+save(savefilename,'d','-v7.3')
 fprintf('everything saved!')
