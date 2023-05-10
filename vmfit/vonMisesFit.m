@@ -182,7 +182,7 @@ else
 end
 
 
-% Calculating the bandwidth of the curve fit 
+% Calculating the bandwidth of the curve fit - in radians
 halfmaxline = (max(Data.Fit.X) - min(Data.Fit.X)) /2; 
 halfmaxline = (max(Data.Fit.X)) - halfmaxline;
 
