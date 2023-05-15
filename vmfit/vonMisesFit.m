@@ -190,11 +190,15 @@ x = Data.Fit.Angle;
 y = Data.Fit.X;
 l = halfmaxline;
 
-[~,idx] = max(y);
-xq(1) = interp1(y(1:idx),x(1:idx), l);
-xq(2) = interp1(y(idx+1:end), x(idx+1:end), l);
-
-Data.bandwidth = abs(xq(1) - xq(2));
+if length(unique(y)) <= 1
+    Data.bandwidth = NaN;
+else 
+    [~,idx] = max(y);
+    xq(1) = interp1(y(1:idx),x(1:idx), l);
+    xq(2) = interp1(y(idx+1:end), x(idx+1:end), l);
+    
+    Data.bandwidth = abs(xq(1) - xq(2));
+end 
 
 
 end
