@@ -26,6 +26,9 @@ p.addParameter('phatalt_start',[],@(x) validateattributes(x,{'numeric'}));
 p.addParameter('phatnull_start',[],@(x) validateattributes(x,{'numeric'}));
 p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
+p.addParameter('constrainmu',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % constrain mu to be near circular mean > requires circ stat toolbox!
+p.addParameter('jitter',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % jitter data to try to converge mle
+p.addParameter('jittersize',[],@(x) validateattributes(x,{'numeric'}));
 
 p.parse(varargin{:});
 
@@ -68,12 +71,22 @@ if isempty(args.phatalt_start)
     B_start = max(x)-min(x);
     kappa_start = 1.5;
     [~,ind]=max(x);
-    mu_start = bin_axis(ind);
+    
+    if args.constrainmu
+        % use circ stat toolbox?
+        [mu, ul, ll] = circ_mean(Ang);
+        mu_start = mu; 
+        mu_range = [ll,ul];
+    else
+        mu_start = bin_axis(ind);
+        mu_range = [-pi,pi];
+    end
+    
     
     A_range = [0.01 2000];
     B_range = [0.01 2000];
     kappa_range = [0.05,10]; % 10 is maybe too high of a max, was set to 2 for nature paper.
-    mu_range = [-pi,pi];
+
     
     % check to see if the most deviated bin is above or below the
     % median (if you suspect an inverted tuning curve)
@@ -120,6 +133,16 @@ end
     'lowerbound',lower_setting,'upperbound',upper_setting,...
     'start',start_setting);
 
+if args.jitter % check that the fit converged, if not, try jittering the data to get there
+    if isnan(pci_alt)
+        Datatmp = vonMisesJitter(X, Ang, 'gamma',args.gamma,'jittersize',args.jittersize,'baselinecomparison',args.baselinecomparison);
+        start_setting = Datatmp.phat_alt; % find a better start setting for the mle
+        [phat_alt,pci_alt] = mle(X,'nloglf',nloglf_alt,'options',options,...
+            'lowerbound',lower_setting,'upperbound',upper_setting,...
+            'start',start_setting);
+    end
+end
+
 % fit for the null hypotheis (distrubiton is flat)
 if isempty(args.phatnull_start)
     if args.gamma
@@ -129,7 +152,7 @@ if isempty(args.phatnull_start)
         lower_setting = [0.01 0.01];
         upper_setting = [200 1000];
     else
-        theta_start = var(X)./mean(X);
+        theta_start = mean(X);
         start_setting = theta_start;
         lower_setting = 0.01;
         upper_setting = 1000;
@@ -151,9 +174,12 @@ else
     val_null = nloglfConstantPoisson(phat_null,X);
 end
 
-D = 2*(val_null-val_alt);
-
-pval = 1 - chi2cdf(real(D),3);
+if ~isnan(pci_alt)
+    D = 2*(val_null-val_alt);
+    pval = 1 - chi2cdf(real(D),3);
+else
+    pval = nan(1);
+end
 
 % save it all out
 Data.phat_alt = phat_alt;
@@ -183,22 +209,25 @@ end
 
 
 % Calculating the bandwidth of the curve fit - in radians
-halfmaxline = (max(Data.Fit.X) - min(Data.Fit.X)) /2; 
-halfmaxline = (max(Data.Fit.X)) - halfmaxline;
+halfmaxline = ((max(Data.Vm.X) - min(Data.Vm.X)) /2) + min(Data.Vm.X); 
+inds = find(round(Data.Vm.X) == round(halfmaxline));
+Data.bandwidth = abs(angle(exp(1i*Data.Fit.Angle(inds(1)))./exp(1i*Data.Fit.Angle(inds(end))))); % this is just circ_dist
 
-x = Data.Fit.Angle;
-y = Data.Fit.X;
-l = halfmaxline;
+% x = Data.Fit.Angle;
+% y = Data.Fit.X;
+% l = halfmaxline;
+% 
 
-if length(unique(y)) <= 1
-    Data.bandwidth = NaN;
-else 
-    [~,idx] = max(y);
-    xq(1) = interp1(y(1:idx),x(1:idx), l);
-    xq(2) = interp1(y(idx+1:end), x(idx+1:end), l);
-    
-    Data.bandwidth = abs(xq(1) - xq(2));
-end 
+% 
+% if length(unique(y)) <= 1
+%     Data.bandwidth = NaN;
+% else 
+%     [~,idx] = max(y);
+%     xq(1) = interp1(y(1:idx),x(1:idx), l);
+%     xq(2) = interp1(y(idx+1:end), x(idx+1:end), l);
+%     
+%     Data.bandwidth = abs(xq(1) - xq(2));
+% end 
 
 
 end
