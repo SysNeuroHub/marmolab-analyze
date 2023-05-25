@@ -56,5 +56,8 @@ gpLFP = bandpass_filter( Lfp, f(1), f(2), filter_order, Fs );
 % GP representation
 gpPhi = generalized_phase( gpLFP, Fs, lp );
 
+% convert to angle in radians
+gpPhi = angle(gpPhi);
+
 end
 

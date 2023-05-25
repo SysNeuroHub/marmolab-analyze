@@ -74,10 +74,10 @@ if isempty(args.phatalt_start)
     
     if args.constrainmu
         % use circ stat toolbox?
-        mu = circ_mean(Ang);
-        t = circ_confmean(Ang,0.2);
+        [mu, ul, ll] = circ_mean(Ang);
+        t = circ_confmean(Ang,0.2)
         mu_start = mu; 
-        mu_range = [mu-t,mu+t];
+        mu_range = [ll,ul];
     else
         mu_start = bin_axis(ind);
         mu_range = [-pi,pi];

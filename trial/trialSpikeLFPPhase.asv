@@ -71,12 +71,11 @@ switch args.method
 end
 
 nFreq = numel(args.fk);
-
-if nFreq == 1, lfpPhase = reshape(lfpPhase, [1, size(lfpPhase,1), size(lfpPhase,2), size(lfpPhase,3)]); end
-
 nCell = length(Spike);
 nLFP =  size(lfpPhase,2);
-ntr = size(lfpPhase,3);
+ntr = size(lfpPhase,2);
+
+if nFreq == 1, lfpPhase = reshape(lfpPhase, [1, size(lfpPhase,1), size(lfpPhase,2), size(lfpPhase,3)]); end
 
 % spikephase = cell(nCell, nLFP);
 spikephase = cell(nFreq, nCell, nLFP);

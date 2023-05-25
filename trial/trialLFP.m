@@ -78,16 +78,16 @@ if max(stop) > o.lfp.numSamples ||  min(start) < 1
     error('your window is bigger than your trial!') 
 end
 
-if numel(chan_ind) == 1
-    Lfp(1,:,:) = lfps(start:stop,trind)';
-else
+% if numel(chan_ind) == 1
+%     Lfp(1,:,:) = lfps(start:stop,trind)';
+% else
     Lfp = nan(numel(chan_ind), sum(trind), diff(args.bn)+1);
     for ich = 1:numel(chan_ind)
         ch = chan_ind(ich);
         trlfp = squeeze(lfps(:,trind,ch))';
         Lfp(ich,:,:) = trlfp(:,start:stop); 
     end
-end
+% end
 
 end
 

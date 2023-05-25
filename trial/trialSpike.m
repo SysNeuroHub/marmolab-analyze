@@ -100,9 +100,9 @@ for ich = 1:numel(chan_ind)
     end
 end
 
-if numel(chan_ind) == 1 
-    Spike = Spike{1};
-end
+% if numel(chan_ind) == 1 
+%     Spike = Spike{1};
+% end
 
 end
 
