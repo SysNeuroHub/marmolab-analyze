@@ -3,6 +3,8 @@ marmolab functions for handling mdbase objects and returning sets of trials with
 
 note: any functions using spike-LFP analysis require mdbase objects containing both spikes and lfps. This can be done on the 'new-args' branch of marmodata. see the makeMdm function for changes in calling mdbase
 
+plotDataDive plots the main plots from Maureen's Data dive on 23/5/23. Written for cuesaccade task - but can be used as an example of function usage
+
 dependencies:
 
 circ_stat toolbox: https://github.com/circstat/circstat-matlab
