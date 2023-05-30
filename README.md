@@ -18,4 +18,3 @@ Generalized phase: https://github.com/mullerlab/generalized-phase
 and then use the ReadMe file to make sure you have all additional
 
 run the demo gp_demo.m to make sure you have everything working
-
