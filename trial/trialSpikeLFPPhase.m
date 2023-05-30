@@ -20,16 +20,17 @@ function spikephase = trialSpikeLFPPhase(o,varargin)
 %
 % Optional arguments:
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
-%   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
-%   onsetvector - maybe a way of inputing an optional alingment time points, like
-%   saccade times, onseted to start of trial > make sure its in ms from
+%   onset - neurostim time point to align data to (ie target onset, stimulus onset, etc) default is trial start
+%   onsetvector - a way of inputing an optional alingment time points, like
+%   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
 %   method - method for fitlering the LFP - 'GP' for generalized phase,
-%   'MT' for multitaper 
-%   fk - frequency window for filtering the LFP, [min, max], Zac uses [5,
-%   40] in his paper.
+%   'MT' for multitaper. defaults to 'MT' 
+%   fk - for generalized phase - frequency window for filtering the LFP, [min, max], Zac uses [5,
+%   40] in his paper. for multitaper, can be a vector of freqencies to
+%   test. defaults to 20 hz
 %   tapers - [N, W], if using multitaper, need frequency smoothing and time
 %   window
 
@@ -48,9 +49,9 @@ p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive
 p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
 
 % for LFP
-p.addParameter('method','GP',@(x) ischar(x) || isempty(x)); % altneratively 'MT'
+p.addParameter('method','MT',@(x) ischar(x) || isempty(x)); % altneratively 'MT'
 % parameters for mt filter
-p.addParameter('tapers',[0.5,10],@(x) isnumeric(x)); % tapers
+p.addParameter('tapers',[0.5,10],@(x) isnumeric(x)); % tapers [time (s), frequency smoothing (Hz)]
 p.addParameter('fk',20,@(x) isnumeric(x)); % frequency, can also be a vector
 p.addParameter('fs',1e3,@(x) isnumeric(x)); % sampling rate in ms
 
@@ -67,7 +68,7 @@ switch args.method
     case 'MT'
         [~, lfpPhase] = trialmtLFP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind, 'tapers',args.tapers,'fk',args.fk,'fs',args.fs);
     case 'GP'
-        [~, lfpPhase] = trialGP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind);
+        [~, lfpPhase] = trialGP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind,'fk',args.fk,'fs',args.fs);
 end
 
 nFreq = numel(args.fk);

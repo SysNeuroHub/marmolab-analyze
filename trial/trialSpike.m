@@ -8,9 +8,10 @@ function [Spike] = trialSpike(o,varargin)
 %
 % Optional arguments:
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
-%   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
-%   onsetvector? - maybe a way of inputing an optional alingment, like
-%   saccade times
+%   onset - neurostim time point to align data to (ie target onset, stimulus onset, etc) default is trial start
+%   onsetvector - a way of inputing an optional alingment time points, like
+%   saccade times, aligned to start of trial > make sure its in ms from
+%   trial start!
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
 %

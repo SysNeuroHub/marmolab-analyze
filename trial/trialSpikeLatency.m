@@ -14,7 +14,7 @@ function [latencyEstimate,peakEstimate,pPoisson,baseRate,responseRate] = trialSp
 % Optional arguments:
 % for the mdbase object:
 %   channels    =  channels to load spiking data for (defaut: o.lfp.numChannels)
-%   onset       =   time point to align onset data to (ie target onset, stimulus onset, etc) default is trial start
+%   onset       =   neursotim time point to align onset data to (ie target onset, stimulus onset, etc) default is trial start
 %   onsetvector =   a way of inputing an optional alingment time points, like
 %                   saccade times, onseted to start of trial > make sure its in ms from
 %                   trial start!

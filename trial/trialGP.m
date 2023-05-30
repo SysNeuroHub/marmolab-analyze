@@ -19,9 +19,9 @@ function [gpLFP, gpPhi] = trialGP(o,varargin)
 %
 % Optional arguments:
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
-%   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
-%   onsetvector? - maybe a way of inputing an optional alingment time points, like
-%   saccade times, onseted to start of trial > make sure its in ms from
+%   onset - neurostim time point to align data to (ie target onset, stimulus onset, etc) default is trial start
+%   onsetvector - a way of inputing an optional alingment time points, like
+%   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
@@ -39,16 +39,23 @@ p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
 p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('fk',[5, 40],@(x) isnumeric(x)); % frequency, can also be a vector
+p.addParameter('fs',1e3,@(x) isnumeric(x)); % sampling rate in ms
+
 
 p.parse(varargin{:});
 
 args = p.Results;
 
+if numel(args.fk) ~= 2
+    error('fk must be a vector of two numbers - the frequency range over which phase is estimated')
+end
+
 Lfp = trialLFP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind);
 
 % parameters for GP
-filter_order = 4; Fs = 1000; lp = 0;  f = [5, 40]; % data filtered between 5 and 40 Hz
-dt = 1 / Fs; T = size(Lfp,3) / Fs; time = dt:dt:T;
+filter_order = 4; Fs = args.fs; lp = 0;  f = args.fk;% data filtered between 5 and 40 Hz
+dt = 1 / Fs; T = size(Lfp,3) / Fs; %time = dt:dt:T;
 
 % wideband filter
 gpLFP = bandpass_filter( Lfp, f(1), f(2), filter_order, Fs );
