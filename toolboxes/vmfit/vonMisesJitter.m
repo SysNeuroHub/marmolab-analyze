@@ -6,7 +6,7 @@ function Data = vonMisesJitter(X, Ang, varargin)
 
 p = inputParser();
 
-p.addParameter('jittersize',[],@(x) validateattributes(x,{'numeric'}));
+% p.addParameter('jittersize',[]);
 p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 
@@ -14,9 +14,9 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.jittersize)
+% if isempty(args.jittersize)
     jittersize = 0.2*mean(X);
-end
+% end
 
 check = 1;
 ind = 1;
