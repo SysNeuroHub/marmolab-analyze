@@ -28,7 +28,7 @@ p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('constrainmu',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % constrain mu to be near circular mean > requires circ stat toolbox!
 p.addParameter('jitter',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % jitter data to try to converge mle
-p.addParameter('jittersize',[],@(x) validateattributes(x,{'numeric'}));
+p.addParameter('jittersize',[]);
 
 p.parse(varargin{:});
 
