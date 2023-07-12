@@ -9,8 +9,6 @@ p = inputParser();
 % p.addParameter('jittersize',[]);
 p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
-p.addParameter('phatalt_start',[0 0 0 0],@(x) validateattributes(x,{'numeric'}));
-p.addParameter('phatnull_start',[0],@(x) validateattributes(x,{'numeric'}));
 
 p.parse(varargin{:});
 
@@ -30,7 +28,7 @@ while check && ind < 1e2
     if ~isnan(Datatmp.pci_alt), check = 0; end
 end
 if ~isnan(Datatmp.pci_alt)
-    Data = vonMisesFit(X,Ang,'phatalt_start',Datatmp.phat_alt,'baselinecomparison',args.baselinecomparison,'gamma',args.gamma);
+    Data = vonMisesFitGamma(X,Ang,Datatmp.phat_null,Datatmp.phat_alt);
 else
     disp('jitter didnt work!')
     Data = Datatmp;
