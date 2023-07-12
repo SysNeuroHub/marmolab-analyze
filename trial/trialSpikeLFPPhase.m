@@ -67,11 +67,13 @@ Spike = trialSpike(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 
 switch args.method
     case 'MT'
         [~, lfpPhase] = trialmtLFP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind, 'tapers',args.tapers,'fk',args.fk,'fs',args.fs);
+        nFreq = numel(args.fk);
     case 'GP'
         [~, lfpPhase] = trialGP(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind,'fk',args.fk,'fs',args.fs);
+        nFreq = 1;
 end
 
-nFreq = numel(args.fk);
+
 
 if nFreq == 1, lfpPhase = reshape(lfpPhase, [1, size(lfpPhase,1), size(lfpPhase,2), size(lfpPhase,3)]); end
 

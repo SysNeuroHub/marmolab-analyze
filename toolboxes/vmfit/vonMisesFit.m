@@ -211,7 +211,7 @@ end
 
 % Calculating the bandwidth of the curve fit - in radians
 halfmaxline = ((max(Data.Vm.X) - min(Data.Vm.X)) /2) + min(Data.Vm.X); 
-inds = find(round(Data.Vm.X) == round(halfmaxline));
+inds = find(Data.Vm.X >= halfmaxline);
 Data.bandwidth = abs(angle(exp(1i*Data.Fit.Angle(inds(1)))./exp(1i*Data.Fit.Angle(inds(end))))); % this is just circ_dist
 
 % x = Data.Fit.Angle;
