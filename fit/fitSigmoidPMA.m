@@ -1,24 +1,27 @@
 function [pos,stats] = fitSigmoidPMA(PMA,varargin)
-% Fit 4-parameter sigmoid to PMA (phase mean angle?) matrix. 
+% Fit 4-parameter sigmoid to PMA (phase mean angle?) matrix.
 % This minimises phase-error (i.e. circular distance) between sigmoid and
 % raw data
 %
 % INPUTS
-% - PMA - 2D or 3D matrix of phase mean angles 
+% - PMA - 2D or 3D matrix of phase mean angles
 % - plotSigmoid - shows sigmoid fits for every channel
 % - plotHeat - shows summary heatmap plus inflection points
-% 
+%
 % OUTPUTS
 % pos - Sigmoid inflection point for:
 % .indiv - individual electrodes
 % .indivMed - median(pos.indiv)
 % .mu - fit to channel-averaged data
 %
-% stats - still coming
-% Should hopefully be an F-test comparing Sigmoid to a flat line
+% stats - results of F-statistic comparing sigmoid fit with nested model
+% (flat line)
+% .muP/.indivP - p value of F-test
+% .muF/.indivF - F-statistic
+% .muConst/.indivConst - constant values used for comparison
 %
 % Syntax examples
-% [pos, stats] = fitSigmoidPMA(PMA); 
+% [pos, stats] = fitSigmoidPMA(PMA);
 % [pos, stats] = fitSigmoidPMA(PMA,'plotSigmoid',false,'debug',true);
 %
 % Reference - https://elifesciences.org/articles/84512
@@ -27,14 +30,14 @@ function [pos,stats] = fitSigmoidPMA(PMA,varargin)
 %% parse arguments...
 p = inputParser();
 p.KeepUnmatched = true;
-p.addParameter('nEst',3);% number of channels at each end to use for estimating plateaus. The larger you can make this, the better. 
+p.addParameter('nEst',3);% number of channels at each end to use for estimating plateaus. The larger you can make this, the better.
 p.addParameter('plotSigmoid',false);
 p.addParameter('plotHeat',false);
 p.addParameter('debug',false);
 p.parse(varargin{:});
 pa = p.Results;
 
-if nargin<1 || isempty(PMA) % personalise filename 
+if nargin<1 || isempty(PMA) % personalise filename
     load('C:\git\homeless\MeanPhase_210813_sampleData.mat')
     pa.plotSigmoid = true;
     pa.plotHeat = true;
@@ -49,7 +52,7 @@ if ndims(PMA)==3
     end
     return
 elseif ~ismatrix(PMA)
-   error('PMA must be dimension 2 or 3');
+    error('PMA must be dimension 2 or 3');
 end
 
 sz = size(PMA);
@@ -76,15 +79,27 @@ muPMA = angle(sum(exp(1i*PMA))); % circular mean across rows
 leftGuess = angle(sum(exp(1i*muPMA(1:pa.nEst))));
 rightGuess = angle(sum(exp(1i*muPMA(end-pa.nEst+1:end))));
 pInit = [round(sz/2) 0.5 leftGuess rightGuess];
-    
+
 pMu = lsqnonlin(myObj, pInit,lb,ub,opt); %, mo.lb, mo.ub);
 
 pos.indiv = pFinal(:,1);
 pos.indivMed = median(pos.indiv);
 pos.mu = pMu(1);
 
-stats.indiv = [];
-stats.mu = [];
+%% Statistics
+% Use F-test to compare sigmoid fits with a flat line
+% the best-fit flat line is just the circular mean of all the data
+% Using Should really use packaged f-test
+dfConst = sz - 1; % degrees of freedom
+dfSig = sz - 4; % 4 parameters
+
+stats.muConst = angle(sum(exp(1i*muPMA)));
+stats.indivConst = angle(sum(exp(1i*PMA),2));
+
+[stats.muP, stats.muF] = ftest(muPMA, stats.muConst,logiFun(pMu,1:sz), dfConst, dfSig);
+for a = 1:sz
+    [stats.indivP(a), stats.indivF(a)] = ftest(PMA(a,:), stats.indivConst(a),logiFun(pFinal(a,:),1:sz), dfConst, dfSig);
+end
 
 
 %% PLOTTING
@@ -101,13 +116,15 @@ if pa.plotSigmoid
         plot(xx, squeeze(PMA(b,:)),'ro-','markerfacecolor','r')
         hold on
         plot(xx, logiFun(pFinal(b,:),xx),'b')
+        plot([1 sz], stats.indivConst(b)*[1 1],'m:')
         plot(pos.indiv(b)*[1 1],[-pi pi],'k','linewidth',2)
         plot([0 sz],[-pi -pi; 0 0; pi pi],'k')
         axis([0 sz -pi pi])
         set(gca,'ytick',[-pi 0 pi],'yticklabel',{'-\pi','0','\pi'})
         
         %         axis off
-        title("Ch"+b);
+        %         title("Ch"+b);
+        title("Ch"+b+ " - " + ptext(stats.indivP(b)))
     end
 end
 
@@ -132,15 +149,18 @@ if pa.plotHeat
     imagesc(muPMA)
     hold on
     plot(pos.mu*[1 1],[0.5 1.5],'w','linewidth',4)
-    plot(pos.mu*[1 1],[0.5 1.5],'k','linewidth',2)    
+    plot(pos.mu*[1 1],[0.5 1.5],'k','linewidth',2)
     plot(pos.indivMed*[1 1],[0.5 1.5],'m','linewidth',2)
     xl = xlim;
     
     subplot(6,1,6)
     plot(muPMA)
     hold on
-    plot(pos.mu*[1 1],[-pi pi],'k','linewidth',3)    
+    plot(pos.mu*[1 1],[-pi pi],'k','linewidth',3)
     plot(pos.indivMed*[1 1],[-pi pi],'m','linewidth',2)
+    title(sprintf('Mean p=%0.2f', stats.muP))
+    title("Mean - " + ptext(stats.muP))
+
     xlim(xl)
     legend('Mean Ch Response','Mean Ch inflection','Indiv ch median');
     legend boxoff
@@ -163,6 +183,9 @@ function y = logiFun(p,depth)
 % y = (D-C) / (1+exp(B*(A-x)) + C;
 
 y = (p(4)-p(3)) ./ (1+exp(p(2)*(p(1)-depth))) +p(3);
+
+function y = flatFun(p,depth)
+y = p(1);
 
 
 function cost = costFn(obs,mod)
