@@ -27,11 +27,11 @@ paradigm = o.paradigm;
 
 %% plot psths
 
-cuedind = o.cueOn & o.complete; % & d.targetloc == d.theta;
-uncuedind = ~o.cueOn & o.complete; % & d.targetloc == d.theta;
+cuedind = o.cueOn & d.complete; % & d.targetloc == d.theta;
+uncuedind = ~d.cueOn & d.complete; % & d.targetloc == d.theta;
 
-cuedSp = trialSpike(o,'onset','sTarget','trind', cuedind, 'bn',[-300,500]);
-uncuedSp = trialSpike(o,'onset','sTarget','trind', uncuedind, 'bn',[-300,500]);
+cuedSp = trialSpike(d,'onset','sTarget','trind', cuedind, 'bn',[-300,500]);
+uncuedSp = trialSpike(d,'onset','sTarget','trind', uncuedind, 'bn',[-300,500]);
 
 uncued_colour = [0 114 178]./255; %blue
 cueIn_colour = [0 158 115]./255; %green
@@ -69,7 +69,7 @@ end
 %% step 4 - get spike times and calc spike-phase relationships - generalized phase method
 
 
-spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','GP','fk',[5, 40]);
+spikephase = trialSpikeLFPPhase(d,'onset','sTarget','trind', d.complete, 'bn',[-500,500],'method','GP','fk',[5, 40]);
 spikephase = squeeze(spikephase);
 % plot it...
 
@@ -82,8 +82,8 @@ for icell = 1:numel(channelOrder)
     for ilfp = 1:numel(channelOrder)
         lfpind = channelOrder(ilfp); 
         if ~isempty([spikephase{cellind,lfpind}{:}])
-        SPI(icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
-        PMP(icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
+        SPI(icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]);
+        PMP(icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]);
         disp(['icell = ' num2str(icell) ' lfp = ' num2str(ilfp) ' cicmean = ' num2str(PMP(icell,ilfp))])
         end
     end
@@ -113,7 +113,7 @@ end
 
 %% use multitaper - test different frequency bands
 
-spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
+spikephase = trialSpikeLFPPhase(d,'onset','sTarget','trind', d.complete, 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
 nfreq = 4;
@@ -128,8 +128,8 @@ for ifreq = 1:4
         for ilfp = 1:numel(channelOrder)
             lfpind = channelOrder(ilfp);
             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-                SPI(ifreq,icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-                PMP(ifreq,icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+                SPI(ifreq,icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]);
+                PMP(ifreq,icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]);
             end
         end
     end
