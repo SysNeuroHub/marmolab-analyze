@@ -28,11 +28,7 @@ p = inputParser();
 p.KeepUnmatched = true;
 p.addParameter('path','',@(x) ischar(x) || isempty(x)); % location of your data
 p.addParameter('savepath','',@(x) ischar(x) || isempty(x)); % location of your mdm files
-% p.addParameter('subject','', @(x) ischar(x) || isempty(x));  % subject name
-% p.addParameter('paradigm','',@(x) ischar(x) || isempty(x)); % paradigm name 
 p.addParameter('channels',[]);
-p.addParameter('analysis','',@(x) ischar(x) || isempty(x));
-% p.addParameter('eye',false,@(x) validateattributes(x,{'logical'},{'scalar'}));
 p.addParameter('spikes','', @(x)  ischar(x) || isempty(x));
 p.addParameter('lfp','',@(x) ischar(x) || isempty(x));
 p.addParameter('filtertype','multitaper',@(x) ischar(x) || isempty(x));
@@ -44,136 +40,21 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.path), error('must provide a path location for the data!'), end
-% if isempty(args.subject), error('must provide a subject!'), end
-% if isempty(args.paradigm), error('must provide a paradigm!'), end
+if isempty(args.path), error('must provide the data file and path!'), end
 
-% step 1 - find all of the files for a given task on on a given day.
+% step 1 - find the file
 
-% Files = dir([args.path filesep args.subject '.' args.paradigm '*' '.mat']); 
-Files = dir(args.path); 
-
-filenames = cell(1,numel(Files));
-for ifile = 1:numel(Files)
-    filenames{ifile} = Files(ifile).name;
-    
-end
+[path, name, ext] = fileparts(args.path);
+filename = [name ext];
 
 % file name to save out to:
 if isempty(args.savepath)
-    args.savepath = args.path;
+    args.savepath = path;
 end
 
-if strcmp(args.spikes,'kilo')
-    savefilename = [args.savepath filesep args.subject '.' args.paradigm  '.kilo.mdm']; % save name > for sorted data
-else
-    savefilename = ['test1'  '.mdm']; % save name
-end
+assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
+d = marmodata.mdbase(filename,'path', path,'loadArgs',{'spikes',args.spikes,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
+    fprintf(['returning ' args.spikes ' spikes and lfp data']);
 
-% old method doesnt work for mulitple files - new branch should allow us to
-% do it at once... let see how it goes...
-
-% ns file only
-if ~ isempty(args.spikes) && isempty(args.lfp)
-    d = marmodata.mdbase(filenames,'path', args.path);
-    fprintf('returning ns file only!')
-end
-
-% eye data only
-% if  isempty(args.spikes) && isempty(args.lfp)
-%     d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye});
-%     fprintf('returning eye and ns data only!')
-% end
-
-% spiking only
-% if  ~isempty(args.spikes) && isempty(args.lfp)
-%     assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
-%      
-%     d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye,'spikes',args.spikes,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
-%     fprintf(['returning ' args.spikes ' spikes'])
-% end
-
-% lfp only
-% if  isempty(args.spikes) && ~isempty(args.lfp)
-%     assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
-%      
-%     d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
-%     fprintf('returning lfp data')
-% end
-
-% everything (preferable!)
-if  ~isempty(args.spikes) && ~isempty(args.lfp)
-    assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
-     
-    d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'spikes',args.spikes,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
-    fprintf(['returning ' args.spikes ' spikes and lfp data'])
-end
-
-if exist(savefilename,'file')% if it already exits, load it so you dont have to do everything again
-    load(savefilename, '-mat', 'd'); 
-else
-    d = marmodata.mdbase(filenames,'path', args.path);
-end 
-
-% step 2 - load the behaviour
-
-% if args.loadEye
-%     d = d.load('loadEye',args.loadEye);
-%     
-%     save(savefilename,'d')
-%     disp('behaviour saved!')
-% end
-
-% step 3 - if kilo, load spike data
-
-if strcmp(args.spikes,'ghetto') && strcmp(args.lfp,'kilo')
-    d = d.load('spikes',args.spikes,'lfp','kilo');
-    save(savefilename,'d')
-    disp('kilo spike data saved!')
-end
-
-% step 4 load lfps (and possibly spikes ghetto) channel by channel
-
-if ~isempty(args.channels)
-    channels = args.channels;
-
-    if strcmp(args.spikes,'ghetto') && strcmp(args.lfp,'raw')
-        d = d.load('spikes',args.spikes,'lfp','raw','channels',channels,'reload', args.reload);
-        save(savefilename,'d')
-        disp('ghetto spike data saved!')
-    end
-    
-%     if strcmp(args.lfp,'raw')
-%         d = d.load('lfp',args.lfp,'channels',channels,'reload', args.reload);
-%         save(savefilename,'d')
-%         disp('lfp data saved!')
-%     end
-    
-%     % nice idea but this doesnt work
-% %     for ich = 1:numel(channels)
-% %         channel = channels(ich);
-% %         
-% %         if args.spikes && strcmp(args.lfp,'ghetto')
-% %             d = d.load('spikes',args.spikes,'lfp','ghetto','channels',channel,'reload', args.reload);
-% %             save(savefilename,'d')
-% %             disp(['ghetto spike data for ch ' num2str(channel) ' saved!'])
-% %         end
-% %         
-% %         if args.lfp 
-% %             d = d.load('lfp',args.lfp,'channels',channel,'reload', args.reload);
-% %             save(savefilename,'d')
-% %             disp(['lfp data for ch ' num2str(channel) ' saved!'])
-% %         end
-% %     end
-end
-
-
-% step 5: run the analysis file for the day
-
-if ~isempty(args.analysis)
-    d = feval(args.analysis, d);
-    fprintf('analysis file run!')
-end
-
-save(savefilename,'d','-v7.3')
+save([path filesep name '.mdb'],'d','-v7.3')
 fprintf('everything saved!')
