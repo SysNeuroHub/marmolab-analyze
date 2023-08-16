@@ -27,6 +27,7 @@ function d = makeMdm_acute(varargin)
 p = inputParser();
 p.KeepUnmatched = true;
 p.addParameter('path','',@(x) ischar(x) || isempty(x)); % location of your data
+p.addParameter('savesuffix','',@(x) ischar(x) || isempty(x)); % location of your data
 p.addParameter('savepath','',@(x) ischar(x) || isempty(x)); % location of your mdm files
 p.addParameter('channels',[]);
 p.addParameter('spikes','', @(x)  ischar(x) || isempty(x));
@@ -56,5 +57,5 @@ assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys c
 d = marmodata.mdbase(filename,'path', path,'loadArgs',{'spikes',args.spikes,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
     fprintf(['returning ' args.spikes ' spikes and lfp data']);
 
-save([path filesep name '.mdb'],'d','-v7.3')
+save([path filesep name args.savesuffix '.mdm'],'d','-v7.3')
 fprintf('everything saved!')
