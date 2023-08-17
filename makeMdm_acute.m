@@ -59,3 +59,7 @@ d = marmodata.mdbase(filename,'path', path,'loadArgs',{'spikes',args.spikes,'lfp
 
 save([path filesep name args.savesuffix '.mdm'],'d','-v7.3')
 fprintf('everything saved!')
+
+% Using mdm files in plotDataDive
+% load('my_mdm_file.mdm','-mat') --> loads mdm file into 'o' variable
+% Do not include this file in the function call.

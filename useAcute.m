@@ -1,13 +1,13 @@
 clc
 
 addpath(genpath('~/Documents/code/marmolab/'))
-addpath(genpath('~/Documents/code/ephys/neurostim/'))
-addpath(genpath('~/Documents/code/ephys/marmolab-analyze/'))
+addpath(genpath('~/Documents/git/neurostim/'))
+addpath(genpath('~/Documents/git/marmolab-analyze/'))
 
-dataloc = '~/Documents/code/ephys/corrStructure_V1MT/data/CJ223/001/CJ223.motionStim.055339.mat';
-saveloc = '~/Documents/code/ephys/corrStructure_V1MT/data/CJ223/001/';
+dataloc = '~/home/marmolab/data2/2022/09/13/CJ223.motionStim.055339.mat'; % file contains stimulus info & points to data folder
+saveloc = '~/home/marmolab/data2/2022/09/13/'; % destination filepath
 
-suffix = '_MT';
+suffix = '_MT'; % _V1 or _MT
 
 switch suffix
     case '_MT'
