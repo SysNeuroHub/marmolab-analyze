@@ -27,49 +27,50 @@ paradigm = o.paradigm;
 
 %% plot psths
 
-cuedind = o.cueOn & o.complete; % & d.targetloc == d.theta;
-uncuedind = ~o.cueOn & o.complete; % & d.targetloc == d.theta;
-
-cuedSp = trialSpike(o,'onset','sTarget','trind', cuedind, 'bn',[-300,500]);
-uncuedSp = trialSpike(o,'onset','sTarget','trind', uncuedind, 'bn',[-300,500]);
-
-uncued_colour = [0 114 178]./255; %blue
-cueIn_colour = [0 158 115]./255; %green
-
-figure('Position',[0 0 600 5000]); 
-for icell = 1:numel(channelOrder)
-    
-    cell = channelOrder(icell);
-    rate1 = psth(cuedSp{cell}, [-300,500], 10);
-    rate2 =  psth(uncuedSp{cell}, [-300,500], 10);
-    subplot(4,round(numel(channelOrder)/4),icell)
-    hold on;
-    plot(rate1,'-','Linewidth',1,'Color',cueIn_colour),
-    plot(rate2,'-','Linewidth',1,'Color',uncued_colour),
-    
-    ymax = max([rate1 rate2]) + 2;
-    
-    set(gca,'XTick', 100:200:800);
-    set(gca,'XTickLabel', {'-200','0','200','400'});
-    set(gca,'YTick',  0:10:50);
-    set(gca,'FontName', 'Helvetica', 'FontAngle','normal','FontSize',10);
-    set(gca,'TickDir', 'out');
-    set(gca,'TickLength', [0.03,0.035]);
-    axis([0 800 0 ymax])
-    
-end
-
-xlabel('Time from target onset')
-ylabel('Firing rate (sp/s)')
-
-if ~isempty(args.savefilepath)
-print([args.savefilepath date_str '_cuedvsuncuedpsths.png'],'-dpng')
-end
+% cuedind = o.cueOn & o.complete; % & d.targetloc == d.theta;
+% uncuedind = ~o.cueOn & o.complete; % & d.targetloc == d.theta;
+% 
+% cuedSp = trialSpike(o,'onset','sTarget','trind', cuedind, 'bn',[-300,500]);
+% uncuedSp = trialSpike(o,'onset','sTarget','trind', uncuedind, 'bn',[-300,500]);
+% 
+% uncued_colour = [0 114 178]./255; %blue
+% cueIn_colour = [0 158 115]./255; %green
+% 
+% figure('Position',[0 0 600 5000]); 
+% for icell = 1:numel(channelOrder)
+%     
+%     cell = channelOrder(icell);
+%     rate1 = psth(cuedSp{cell}, [-300,500], 10);
+%     rate2 =  psth(uncuedSp{cell}, [-300,500], 10);
+%     subplot(4,round(numel(channelOrder)/4),icell)
+%     hold on;
+%     plot(rate1,'-','Linewidth',1,'Color',cueIn_colour),
+%     plot(rate2,'-','Linewidth',1,'Color',uncued_colour),
+%     
+%     ymax = max([rate1 rate2]) + 2;
+%     
+%     set(gca,'XTick', 100:200:800);
+%     set(gca,'XTickLabel', {'-200','0','200','400'});
+%     set(gca,'YTick',  0:10:50);
+%     set(gca,'FontName', 'Helvetica', 'FontAngle','normal','FontSize',10);
+%     set(gca,'TickDir', 'out');
+%     set(gca,'TickLength', [0.03,0.035]);
+%     axis([0 800 0 ymax])
+%     
+% end
+% 
+% xlabel('Time from target onset')
+% ylabel('Firing rate (sp/s)')
+% 
+% if ~isempty(args.savefilepath)
+% print([args.savefilepath date_str '_cuedvsuncuedpsths.png'],'-dpng')
+% end
 
 %% step 4 - get spike times and calc spike-phase relationships - generalized phase method
 
 
-spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','GP','fk',[5, 40]);
+% spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','GP','fk',[5, 40]);
+spikephase = trialSpikeLFPPhase(o,'method','GP','fk',[5,40]);
 spikephase = squeeze(spikephase);
 % plot it...
 
