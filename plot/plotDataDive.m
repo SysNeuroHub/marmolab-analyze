@@ -22,6 +22,10 @@ else
     channelOrder = args.channelOrder; % shallow < > deep
 end
 
+% Future functions use channels as array indices so must always be 1:64
+% (using electrodes 65:128 cause code to break)
+channelOrder = find(channelOrder == channelOrder);
+
 subject = o.subject;
 paradigm = o.paradigm;
 
@@ -114,7 +118,7 @@ end
 
 %% use multitaper - test different frequency bands
 
-spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
+spikephase = trialSpikeLFPPhase(o,'onset','sTarget', 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
 nfreq = 4;
