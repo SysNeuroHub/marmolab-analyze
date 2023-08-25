@@ -74,7 +74,7 @@ paradigm = o.paradigm;
 
 
 % spikephase = trialSpikeLFPPhase(o,'onset','sTarget','trind', o.complete, 'bn',[-500,500],'method','GP','fk',[5, 40]);
-spikephase = trialSpikeLFPPhase(o,'method','GP','fk',[5,40]);
+spikephase = trialSpikeLFPPhase(o,'bn',[0,1366],'method','GP','fk',[5,40]);
 spikephase = squeeze(spikephase);
 % plot it...
 
@@ -118,7 +118,8 @@ end
 
 %% use multitaper - test different frequency bands
 
-spikephase = trialSpikeLFPPhase(o,'onset','sTarget', 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
+% spikephase = trialSpikeLFPPhase(o,'onset','sTarget', 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
+spikephase = trialSpikeLFPPhase(o,'bn',[0,500],'method','GP','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
 nfreq = 4;
