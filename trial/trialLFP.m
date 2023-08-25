@@ -62,6 +62,19 @@ if isempty(args.trind)
 else, trind = args.trind;
 end
 
+% Idea to check lfps variable for NaNs (in trialLFP function)
+% [w,l,h] = size(lfps);
+% for i = 1:l
+%     [w,l,h] = size(lfps);
+%     while w > 0  
+%         if sum(isnan(lfps(w,l,:))) == 0
+%             lowest(i) = width;
+%             w = 0;
+%         end
+%         w = w - 1;
+%     end
+% end
+
 % get an onset time in ms for each trial
 if isempty(args.onsetvector)
     if ~isempty(args.onset)
@@ -74,6 +87,7 @@ end
 
 start = round(onsets(trind)) + args.bn(1); stop = round(onsets(trind)) + args.bn(2);
 
+% error checkpoint: is window bigger than trial time?
 if max(stop) > o.lfp.numSamples ||  min(start) < 1
     error('your window is bigger than your trial!') 
 end
