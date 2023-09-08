@@ -16,15 +16,15 @@ args = p.Results;
 
 date_str = [o.path{1}(end-9:end-6) '_' o.path{1}(end-4:end-3) '_' o.path{1}(end-1:end)];
 
-if isempty(args.channelOrder)
-    channelOrder = o.spikes.chanIds;
-else
-    channelOrder = args.channelOrder; % shallow < > deep
-end
+% if isempty(args.channelOrder)
+%     channelOrder = o.spikes.chanIds;
+% else
+%     channelOrder = args.channelOrder; % shallow < > deep
+% end
 
 % Future functions use channels as array indices so must always be 1:64
 % (using electrodes 65:128 cause code to break)
-channelOrder = find(channelOrder == channelOrder);
+% channelOrder = find(channelOrder == channelOrder);
 
 subject = o.subject;
 paradigm = o.paradigm;
@@ -125,37 +125,75 @@ spikephase = squeeze(spikephase);
 array = marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
 channelOrder = array.electrode{1,1}.chanMap;
 
+% split channelOrder into shanks
+% k = 1;
+% for i = 1:4
+%     channelOrder(1:16,i) = array.electrode{1,1}.chanMap(k:k+15);
+%     k = k + 16;
+% end
+
+
 nfreq = 4;
 SPI = nan(nfreq, numel(channelOrder),numel(channelOrder)); % spike phase index (circ_r)
 PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phase (circ_m)
 
 % now we want to do this ordered by depth
 
-for ifreq = 1:4
+% for ifreq = 1:4
+%     for icell = 1:numel(channelOrder)
+%         cellind = channelOrder(icell);
+%         for ilfp = 1:numel(channelOrder)
+%             lfpind = channelOrder(ilfp);
+%             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
+%                 SPI(ifreq,icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
+%                 PMP(ifreq,icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+%             end
+%         end
+%     end
+% end
+
+% testing with just one frequency for now
+% shank = 1;
+%     for icell = 1:numel(channelOrder(:,shank))
+%         cellind = channelOrder(icell);
+%         for ilfp = 1:numel(channelOrder(:,shank))
+%             lfpind = channelOrder(ilfp);
+%             if ~isempty([spikephase{cellind,lfpind}{:}])
+%                 SPI(shank, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
+%                 PMP(shank, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
+%             end
+%         end
+%     end
+
+
     for icell = 1:numel(channelOrder)
         cellind = channelOrder(icell);
         for ilfp = 1:numel(channelOrder)
             lfpind = channelOrder(ilfp);
-            if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-                SPI(ifreq,icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-                PMP(ifreq,icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+            if ~isempty([spikephase{cellind,lfpind}{:}])
+                SPI(1, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
+                PMP(1, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
             end
         end
     end
-end
+
 % plot it
 titles = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
 % scale = [0.2 0.2 0.2 0.2];
-
+titles = {'Shank 1','Shank 4','Shank 2','Shank 3',};
+k = 1;
 figure; 
-for ifreq = 1:4
-subplot(2,2,ifreq)
-imagesc(squeeze(SPI(ifreq,:,:))), colorbar
-map = colorcet( 'L03' ); colormap(gca,map)
+for shank = 1:4
+subplot(2,2,shank)
+% imagesc(squeeze(SPI(ifreq,:,:))), colorbar
+% map = colorcet( 'L03' ); colormap(gca,map)
+imagesc(squeeze(SPI(shank,k:k+15,k:k+15))), colorbar
+map = colorcet( 'C1' ); colormap(gca,map)
 axis square
 ylabel('Multiunits by depth')
 xlabel('LFPs by depth')
-title(titles{ifreq});
+% title(titles{ifreq});
+k = k + 16;
 end
 
 if ~isempty(args.savefilepath)
@@ -164,15 +202,15 @@ end
 
 
 figure; 
-for ifreq = 1:4
-subplot(2,2,ifreq)
-imagesc(squeeze(PMP(ifreq,:,:))), colorbar
+% for ifreq = 1:4
+subplot(2,2,1)
+imagesc(squeeze(PMP(1,:,:))), colorbar
 map = colorcet( 'C2' ); colormap(gca, circshift( map, [ 28, 0 ] ) )
 axis square
 ylabel('Multiunits by depth')
 xlabel('LFPs by depth')
 title(titles{ifreq});
-end
+% end
 
 if ~isempty(args.savefilepath)
 print([args.savefilepath date_str '_' subject '_' paradigm '_Multitaper_all_freqs_PMP.png'],'-dpng')
