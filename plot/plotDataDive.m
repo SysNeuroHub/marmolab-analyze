@@ -119,7 +119,7 @@ paradigm = o.paradigm;
 
 % spikephase = trialSpikeLFPPhase(o,'onset','sTarget', 'bn',[-500,500],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 % spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
-spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',4);
+spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
 array = marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
@@ -139,62 +139,50 @@ PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phas
 
 % now we want to do this ordered by depth
 
-% for ifreq = 1:4
-%     for icell = 1:numel(channelOrder)
-%         cellind = channelOrder(icell);
-%         for ilfp = 1:numel(channelOrder)
-%             lfpind = channelOrder(ilfp);
-%             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-%                 SPI(ifreq,icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-%                 PMP(ifreq,icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
-%             end
-%         end
-%     end
-% end
-
-% testing with just one frequency for now
-% shank = 1;
-%     for icell = 1:numel(channelOrder(:,shank))
-%         cellind = channelOrder(icell);
-%         for ilfp = 1:numel(channelOrder(:,shank))
-%             lfpind = channelOrder(ilfp);
-%             if ~isempty([spikephase{cellind,lfpind}{:}])
-%                 SPI(shank, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
-%                 PMP(shank, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
-%             end
-%         end
-%     end
-
-
+for ifreq = 1:4
     for icell = 1:numel(channelOrder)
         cellind = channelOrder(icell);
         for ilfp = 1:numel(channelOrder)
             lfpind = channelOrder(ilfp);
-            if ~isempty([spikephase{cellind,lfpind}{:}])
-                SPI(1, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
-                PMP(1, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
+            if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
+                SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
+                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
             end
         end
     end
+end
 
 % plot it
-titles = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
+titlesf = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
 % scale = [0.2 0.2 0.2 0.2];
 titles = {'Shank 1','Shank 4','Shank 2','Shank 3',};
-k = 1;
+nshank = 4;
+ifreq = 1;
 figure; 
-for shank = 1:4
-subplot(2,2,shank)
-% imagesc(squeeze(SPI(ifreq,:,:))), colorbar
-% map = colorcet( 'L03' ); colormap(gca,map)
-imagesc(squeeze(SPI(shank,k:k+15,k:k+15))), colorbar
-map = colorcet( 'C1' ); colormap(gca,map)
-axis square
-ylabel('Multiunits by depth')
-xlabel('LFPs by depth')
-% title(titles{ifreq});
-k = k + 16;
+count =1;
+for m = 1:nfreq
+    k = 1;
+    b = 1;
+    
+    while k < 65
+        subplot(nfreq,nshank,count)
+        % imagesc(squeeze(SPI(ifreq,:,:))), colorbar
+        % map = colorcet( 'L03' ); colormap(gca,map)
+        imagesc(squeeze(SPI(m,k:k+15,k:k+15))), colorbar
+        map = colorcet( 'L3' ); colormap(gca,map)
+        axis square
+        caxis([0,0.22])
+        ylabel('Multiunits by depth');
+        xlabel('LFPs by depth');
+        title(titles{b});
+        k = k + 16;
+        b=b+1;
+        count = count + 1;
+    end
 end
+subplot(nfreq,nshank,1)
+h1 = text(-0.25, 0.5,'row 1');
+set(h1, 'rotation', 90)
 
 if ~isempty(args.savefilepath)
 print([args.savefilepath date_str '_' subject '_' paradigm '_Multitaper_all_freqs_SPI.png'],'-dpng')
@@ -202,14 +190,38 @@ end
 
 
 figure; 
-% for ifreq = 1:4
-subplot(2,2,1)
-imagesc(squeeze(PMP(1,:,:))), colorbar
-map = colorcet( 'C2' ); colormap(gca, circshift( map, [ 28, 0 ] ) )
-axis square
-ylabel('Multiunits by depth')
-xlabel('LFPs by depth')
-title(titles{ifreq});
+k=1;
+count =1;
+
+for m = 1:nfreq
+    k = 1;
+    b = 1;
+    
+    while k < 65
+        subplot(nfreq,nshank,count)
+        imagesc(squeeze(PMP(m,k:k+15,k:k+15))), colorbar
+        map = colorcet( 'C2' ); colormap(gca, circshift( map, [ 28, 0 ] ) )
+        axis square
+        caxis([-pi,pi])
+        ylabel('Multiunits by depth')
+        xlabel('LFPs by depth')
+        % title(titles{ifreq});
+        title(titles{b});
+        k = k + 16;
+        b=b+1;
+        count = count + 1;
+    end
+end
+
+% for shank = 1:4
+% subplot(2,2,shank)
+% imagesc(squeeze(PMP(1,k:k+15,k:k+15))), colorbar
+% map = colorcet( 'C2' ); colormap(gca, circshift( map, [ 28, 0 ] ) )
+% axis square
+% ylabel('Multiunits by depth')
+% xlabel('LFPs by depth')
+% title(titles{shank});
+% k = k + 16;
 % end
 
 if ~isempty(args.savefilepath)
