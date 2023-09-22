@@ -5,6 +5,10 @@ function plotDataDive(o,varargin)
 
 % adjusted to be used for acute experiments 15/9/23
 
+% Load data as follows:
+% load("/home/marmolab/data2/2022/09/13/CJ223.motionStim.055339_MT.mdm",'-mat');
+% then run plotDataDive(d)
+
 p = inputParser();
 p.KeepUnmatched = true;
 p.parse(varargin{:});
@@ -74,12 +78,13 @@ for ifreq = 1:nfreq
     end
 end
 
-% Overarching frequency titles - not working yet!
-figure
-spPos = cat(1,sp([1 3]).Position);
-titleSettings = {'HorizontalAlignment','center','EdgeColor','none','FontSize',12};
-annotation('textbox','Position',[spPos(1,1:2) 0.3 0.3],'String','Left title',titleSettings{:})
-annotation('textbox','Position',[spPos(2,1:2) 0.3 0.3],'String','Right title',titleSettings{:})
+% % Overarching frequency titles 
+row_height = 0.1;
+y_coords = [0.775,0.55,0.325,0.125];
+
+for i = 1:length(freqsList)
+    annotation('textbox',[0.03,y_coords(i),0.08,row_height],'String',freqsList{i},'EdgeColor','none','FontSize',14);
+end
 
 
 % Plotting PMP results
@@ -95,7 +100,8 @@ for ifreq = 1:nfreq
     
     while chanIndex < 65
         % Plot SPI
-        subplot(nfreq,nshank,plotCount)
+        fprintf("Breaks at chanindex %d, shankCount %d, plotcount %d\n",chanIndex,shankCount,plotCount)
+        subplot(nfreq,length(shanksList),plotCount)
         imagesc(squeeze(PMP(ifreq,chanIndex:chanIndex+15,chanIndex:chanIndex+15))), colorbar
         
         % Plot features
@@ -111,4 +117,13 @@ for ifreq = 1:nfreq
         shankCount=shankCount+1;
         plotCount = plotCount + 1;
     end
+end
+
+
+% % Overarching frequency titles 
+row_height = 0.1;
+y_coords = [0.775,0.55,0.325,0.125];
+
+for i = 1:length(freqsList)
+    annotation('textbox',[0.03,y_coords(i),0.08,row_height],'String',freqsList{i},'EdgeColor','none','FontSize',14);
 end
