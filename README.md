@@ -20,3 +20,10 @@ Generalized phase: https://github.com/mullerlab/generalized-phase
 and then use the ReadMe file to make sure you have all additional
 
 run the demo gp_demo.m to make sure you have everything working
+
+## instructions for dummies
+- Try the datafile from August 8th, 2021 `hugo.cuesaccade.mdm`.
+- load the data into the workspace with `load('my\file\here\filename.mdm', '-mat')`
+- pass the marmodata object into `plotDataDive` with a function call
+- pass another argument with the channel order for the array you're analysing
+
