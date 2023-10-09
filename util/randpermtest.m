@@ -7,6 +7,10 @@ function [pval, D, PD] = randpermtest(X1, X2, NPERM, flag)
 
 % flag: indicates ciruclar data and uses circstat toolbox
 
+% remove nans
+X1 = X1(~isnan(X1));
+X2 = X2(~isnan(X2));
+
 ntr1 = numel(X1);
 ntr2 = numel(X2);
 
@@ -46,9 +50,7 @@ elseif flag
         NP = randperm(nGX);
         N1 = NP(1:ntr1);
         N2 = NP(ntr1+1:end);
-        PX1 = circ_mean(GX(N1));
-        PX2 = circ_mean(GX(N2));
-        PD(iPerm) = circ_dist(PX1,PX2);
+        PD(iPerm) = circ_dist(circ_mean(GX(N1)),circ_mean(GX(N2)));
     end
 end
 pval = length(find(abs(PD)>abs(D)))./NPERM;
