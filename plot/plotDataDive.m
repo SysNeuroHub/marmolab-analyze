@@ -18,6 +18,31 @@ p.parse(varargin{:});
 spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
+%% Analysis of subset of trials
+% There are 3600 trials, 4 frequencies, and 64 channels (64 x 64)
+
+% To extract a subset of the 3600 trials:
+subset = 100; % adjust as necessary - will define # trials per subset
+num_iterations = 3600/subset;
+lowvar = 1;
+hivar = subset;
+
+for i = 1:num_iterations
+    % Finds subset data
+    tmp = cellfun(@(x, a) x(lowvar:hivar), spikephase, 'UniformOutput', false);
+    
+    % Name subset data variable
+    var_name = sprintf('subset%d',i);
+    var_name_arr{i}= var_name;
+    
+    % saves subset data into subset variable
+    eval([var_name '=tmp']);
+    
+    % update to next subset
+    lowvar = lowvar + subset;
+    hivar = hivar + subset;
+end
+
 % Import Intan array
 array = input("Filepath for channel order:"); % marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
 channelOrder = array.electrode{1,1}.chanMap;
@@ -27,19 +52,41 @@ nfreq = 4;
 SPI = nan(nfreq, numel(channelOrder),numel(channelOrder)); % spike phase index (circ_r)
 PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phase (circ_m)
 
-% SPi + PMP ordered by depth
-for ifreq = 1:4
-    for icell = 1:numel(channelOrder)
-        cellind = channelOrder(icell);
-        for ilfp = 1:numel(channelOrder)
-            lfpind = channelOrder(ilfp);
-            if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-                SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+% % SPI + PMP ordered by depth
+% for ifreq = 1:4
+%     for icell = 1:numel(channelOrder)
+%         cellind = channelOrder(icell);
+%         for ilfp = 1:numel(channelOrder)
+%             lfpind = channelOrder(ilfp);
+%             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
+%                 SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
+%                 PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+%             end
+%         end
+%     end
+% end
+
+% Adjusted version for subset analysis
+% SPI + PMP ordered by depth
+subset_input = input("Please indicate which subset # you want\n");
+% for k = 1:length(var_name_arr)
+%     curr_var_name = var_name_arr{k};
+%     curr_val = eval(curr_var_name);
+curr_var_name = var_name_arr{subset_input};
+curr_val = eval(curr_var_name);
+    for ifreq = 1:4
+        for icell = 1:numel(channelOrder)
+            cellind = channelOrder(icell);
+            for ilfp = 1:numel(channelOrder)
+                lfpind = channelOrder(ilfp);
+                if ~isempty([curr_val{ifreq,cellind,lfpind}{:}])
+                    SPI(ifreq, icell,ilfp) = circ_r([curr_val{ifreq,cellind,lfpind}{:}]');
+                    PMP(ifreq, icell,ilfp) = circ_mean([curr_val{ifreq,cellind,lfpind}{:}]');
+                end
             end
         end
     end
-end
+% end
 
 %% Plotting results
 
@@ -48,7 +95,7 @@ freqsList = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
 shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
 
 % Counter initialise
-plotCount =1; % counts subplot #
+plotCount = 1; % counts subplot #
 
 % Plotting SPI results
 
@@ -66,7 +113,7 @@ for ifreq = 1:nfreq
         % Plot features
         map = colorcet( 'L3' ); colormap(gca,map)
         axis square
-        caxis([0,0.22])
+        caxis([0,0.6])
         ylabel('Multiunits by depth');
         xlabel('LFPs by depth');
         title(shanksList{shankCount});
@@ -78,6 +125,18 @@ for ifreq = 1:nfreq
     end
 end
 
+% figure; 
+% for ifreq = 1:4
+%     subplot(2,2,ifreq)
+%     imagesc(squeeze(SPI(ifreq,:,:))), colorbar
+%     map = colorcet( 'L3' ); colormap(gca,map)
+%     axis square
+%     caxis([0,0.5])
+%     ylabel('Multiunits by depth')
+%     xlabel('LFPs by depth')
+%     title(freqsList{ifreq});
+% end
+
 % % Overarching frequency titles 
 row_height = 0.1;
 y_coords = [0.775,0.55,0.325,0.125];
@@ -85,6 +144,8 @@ y_coords = [0.775,0.55,0.325,0.125];
 for i = 1:length(freqsList)
     annotation('textbox',[0.03,y_coords(i),0.08,row_height],'String',freqsList{i},'EdgeColor','none','FontSize',14);
 end
+
+sgtitle("SPI - CJ223 14/09/22 055339 V1")
 
 
 % Plotting PMP results
@@ -100,7 +161,6 @@ for ifreq = 1:nfreq
     
     while chanIndex < 65
         % Plot SPI
-        fprintf("Breaks at chanindex %d, shankCount %d, plotcount %d\n",chanIndex,shankCount,plotCount)
         subplot(nfreq,length(shanksList),plotCount)
         imagesc(squeeze(PMP(ifreq,chanIndex:chanIndex+15,chanIndex:chanIndex+15))), colorbar
         
@@ -127,3 +187,5 @@ y_coords = [0.775,0.55,0.325,0.125];
 for i = 1:length(freqsList)
     annotation('textbox',[0.03,y_coords(i),0.08,row_height],'String',freqsList{i},'EdgeColor','none','FontSize',14);
 end
+
+sgtitle("PMP - CJ223 14/09/22 055339 V1")
