@@ -55,27 +55,45 @@ elseif ~ismatrix(PMA)
     error('PMA must be dimension 2 or 3');
 end
 
+rowsToRemove = all(isnan(PMA),2);
+PMA(rowsToRemove,:) = [];
+
 sz = size(PMA);
-assert(sz(1)==sz(2),'Expected a square matrix') % not sure if this is necessary/useful
+% assert(sz(1)==sz(2),'Expected a square matrix') % not sure if this is necessary/useful
 % assert(all(~isnan(PMA)),'NaN found in PMA. Haven''t checked if that works yet!')
 sz = sz(1);
+
+pFinal = zeros(sz,4); % preallocate pFinal in the event that there are rows of NaNs at the end of the data
+
 for b = 1:sz % work through channels
     thisCh = PMA(b,:);
-    
-    % Circular mean of leftmost and rightmost points
-    leftGuess = angle(sum(exp(1i*thisCh(1:pa.nEst))));
-    rightGuess = angle(sum(exp(1i*thisCh(end-pa.nEst+1:end))));
-    pInit = [round(sz/2) 0.5 leftGuess rightGuess];
-    
-    opt = optimoptions('lsqnonlin','Display','off'); %,'Display','iter'); %odeset('RelTol',1e-8,'AbsTol',1e-16);
-    myObj = @(pa) costFn(logiFun(pa,1:sz), thisCh);
-    lb = []; % so far, this seems to converge fine without constraints
-    ub = [];
-    pFinal(b,:) = lsqnonlin(myObj, pInit,lb,ub,opt); %, mo.lb, mo.ub);
+
+    if (all(~isnan(thisCh)))
+        % Circular mean of leftmost and rightmost points
+        leftGuess = angle(sum(exp(1i*thisCh(1:pa.nEst))));
+        rightGuess = angle(sum(exp(1i*thisCh(end-pa.nEst+1:end))));
+        pInit = [round(sz/2) 0.5 leftGuess rightGuess];
+        
+        opt = optimoptions('lsqnonlin','Display','off'); %,'Display','iter'); %odeset('RelTol',1e-8,'AbsTol',1e-16);
+        myObj = @(pa) costFn(logiFun(pa,1:sz), thisCh);
+        lb = []; % so far, this seems to converge fine without constraints
+        ub = [];
+
+        pFinal(b,:) = lsqnonlin(myObj, pInit,lb,ub,opt); %, mo.lb, mo.ub);
+    end
 end
 
 %% Circular-average across channels before fitting
-muPMA = angle(sum(exp(1i*PMA))); % circular mean across rows
+% set NaN rows to 0 then only use non-zero rows for circular mean
+% it wasn't possible to leave zero rows in the data because would skew the
+% circular average
+% PMA(isnan(PMA))=0; 
+% nonZeroRows = any(PMA,2);
+% nonZeroPMA = PMA(nonZeroRows,:);
+
+
+
+muPMA = angle(sum(exp(1i*PMA))); % circular mean across rows 
 leftGuess = angle(sum(exp(1i*muPMA(1:pa.nEst))));
 rightGuess = angle(sum(exp(1i*muPMA(end-pa.nEst+1:end))));
 pInit = [round(sz/2) 0.5 leftGuess rightGuess];
@@ -94,11 +112,16 @@ dfConst = sz - 1; % degrees of freedom
 dfSig = sz - 4; % 4 parameters
 
 stats.muConst = angle(sum(exp(1i*muPMA)));
-stats.indivConst = angle(sum(exp(1i*PMA),2));
+stats.indivConst = angle(sum(exp(1i*PMA),2)); 
+
+% preallocate might be useful?
+% stats.indivP = zeros(sz,sz);
+% stats.indivF = zeros(sz,1);
 
 [stats.muP, stats.muF] = ftest(muPMA, stats.muConst,logiFun(pMu,1:sz), dfConst, dfSig);
-for a = 1:sz
-    [stats.indivP(a), stats.indivF(a)] = ftest(PMA(a,:), stats.indivConst(a),logiFun(pFinal(a,:),1:sz), dfConst, dfSig);
+% [stats.muP, stats.muF] = ftest(length(muPMA), ,length(logiFun(pMu,1:sz)), dfConst, dfSig);
+for a = 1:length(PMA)
+    [stats.indivP(a,:), stats.indivF(a)] = ftest(PMA(a,:), stats.indivConst(a),logiFun(pFinal(a,:),1:sz), dfConst, dfSig);
 end
 
 
@@ -110,14 +133,16 @@ if pa.plotSigmoid
     xx = 1:sz;
     nX = ceil(sqrt(sz));
     nY = ceil(sz/nX);
+    sgtitle("") % may need to know array and shank number from plotDataDive()
     
-    for b = 1:sz
+%     for b = 1:sz
+    for b = 1:length(pFinal)
         subplot(nX,nY,b)
         plot(xx, squeeze(PMA(b,:)),'ro-','markerfacecolor','r')
         hold on
         plot(xx, logiFun(pFinal(b,:),xx),'b')
-        plot([1 sz], stats.indivConst(b)*[1 1],'m:')
-        plot(pos.indiv(b)*[1 1],[-pi pi],'k','linewidth',2)
+        plot([1 sz], stats.indivConst(b)*[1 1],'m:') % to visualise comparison of sigmoid fit vs horizontal line - sometimes identical (p = 1)
+        plot(pos.indiv(b)*[1 1],[-pi pi],'k','linewidth',2) % so does pos.indiv contain the transition point - looks like yes
         plot([0 sz],[-pi -pi; 0 0; pi pi],'k')
         axis([0 sz -pi pi])
         set(gca,'ytick',[-pi 0 pi],'yticklabel',{'-\pi','0','\pi'})
