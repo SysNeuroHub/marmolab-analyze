@@ -18,6 +18,7 @@ p.parse(varargin{:});
 spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
 spikephase = squeeze(spikephase);
 
+
 %% Analysis of subset of trials
 % There are 3600 trials, 4 frequencies, and 64 channels (64 x 64)
 
@@ -70,6 +71,7 @@ end
 % Plot title lists (don't change so leave outside loop)
 freqsList = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
 shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
+shanksListCount = [1,4,2,3];
 
 % subset_input = 1;
 % 
@@ -186,7 +188,7 @@ shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
 %             save(fullFilepath,'tmp');
             
             % Alternative approach - call fitSigmoid from here each time
-            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true');
+            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date);
                 
             % Increment counters
             chanIndex = chanIndex + 16;

@@ -34,6 +34,11 @@ p.addParameter('nEst',3);% number of channels at each end to use for estimating 
 p.addParameter('plotSigmoid',false);
 p.addParameter('plotHeat',false);
 p.addParameter('debug',false);
+% added below parameters Jan 3 2024, Gretel GB
+p.addParameter('shank',0); 
+p.addParameter('channelOrder',[]);
+p.addParameter('subject','CJ000');
+p.addParameter('date',"00/00/00");
 p.parse(varargin{:});
 pa = p.Results;
 
@@ -48,13 +53,15 @@ end
 % phases, so just call this function recursively
 if ndims(PMA)==3
     for a = 1:size(PMA,1)
-        [pos(a),stats(a)] = fitSigmoidPMA(squeeze(PMA(a,:,:)),'nEst',pa.nEst,'plotSigmoid',pa.plotSigmoid,'plotHeat',pa.plotHeat,'debug',pa.debug);
+        [pos(a),stats(a)] = fitSigmoidPMA(squeeze(PMA(a,:,:)),'nEst',pa.nEst,'plotSigmoid',pa.plotSigmoid,'plotHeat',pa.plotHeat,'debug',pa.debug,'shank',pa.shank);
     end
     return
 elseif ~ismatrix(PMA)
     error('PMA must be dimension 2 or 3');
 end
 
+% Remove any rows that are completely NaN otherwise code breaks
+% Cannot set to 0 because will skew averages later.
 rowsToRemove = all(isnan(PMA),2);
 PMA(rowsToRemove,:) = [];
 
@@ -84,14 +91,6 @@ for b = 1:sz % work through channels
 end
 
 %% Circular-average across channels before fitting
-% set NaN rows to 0 then only use non-zero rows for circular mean
-% it wasn't possible to leave zero rows in the data because would skew the
-% circular average
-% PMA(isnan(PMA))=0; 
-% nonZeroRows = any(PMA,2);
-% nonZeroPMA = PMA(nonZeroRows,:);
-
-
 
 muPMA = angle(sum(exp(1i*PMA))); % circular mean across rows 
 leftGuess = angle(sum(exp(1i*muPMA(1:pa.nEst))));
@@ -149,7 +148,7 @@ if pa.plotSigmoid
         
         %         axis off
         %         title("Ch"+b);
-        title("Ch"+b+ " - " + ptext(stats.indivP(b)))
+        title("Ch"+channelOrder(b)+ " - " + ptext(stats.indivP(b)))
     end
 end
 
