@@ -28,7 +28,7 @@ p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('constrainmu',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % constrain mu to be near circular mean > requires circ stat toolbox!
 p.addParameter('jitter',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % jitter data to try to converge mle
-p.addParameter('jittersize',[]);
+p.addParameter('jittersize',[],@(x) validateattributes(x,{'numeric'}));
 
 p.parse(varargin{:});
 
@@ -74,10 +74,10 @@ if isempty(args.phatalt_start)
     
     if args.constrainmu
         % use circ stat toolbox?
-        mu = circ_mean(Ang);
-        t = circ_confmean(Ang,0.2);
+        [mu, ul, ll] = circ_mean(Ang);
+        t = circ_confmean(Ang,0.2)
         mu_start = mu; 
-        mu_range = [mu-t,mu+t];
+        mu_range = [ll,ul];
     else
         mu_start = bin_axis(ind);
         mu_range = [-pi,pi];

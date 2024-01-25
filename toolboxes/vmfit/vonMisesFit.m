@@ -22,13 +22,13 @@ function Data = vonMisesFit(X, Ang, varargin)
 
 p = inputParser();
 
-p.addParameter('phatalt_start',[],@(x) validateattributes(x,{'numeric'}));
-p.addParameter('phatnull_start',[],@(x) validateattributes(x,{'numeric'}));
+p.addParameter('phatalt_start',[0 0 0 0]);%,@(x) validateattributes(x,{'numeric'}));
+p.addParameter('phatnull_start',0);
 p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('constrainmu',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % constrain mu to be near circular mean > requires circ stat toolbox!
 p.addParameter('jitter',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % jitter data to try to converge mle
-p.addParameter('jittersize',[]);
+% p.addParameter('jittersize',[]);
 
 p.parse(varargin{:});
 
@@ -53,7 +53,6 @@ else
 end
 
 % Choose parameter starting points
-if isempty(args.phatalt_start)
     
     bins{1}(1,:) = [-pi,-pi+pi./4];
     bins{2}(1,:) = [-3*pi./4,-pi./2];
@@ -76,6 +75,10 @@ if isempty(args.phatalt_start)
         % use circ stat toolbox?
         mu = circ_mean(Ang);
         t = circ_confmean(Ang,0.2);
+        if isnan(t)
+           mu_start = bin_axis(ind);
+           mu_range = [-pi,pi];
+        end 
         mu_start = mu; 
         mu_range = [mu-t,mu+t];
     else
@@ -84,8 +87,8 @@ if isempty(args.phatalt_start)
     end
     
     
-    A_range = [0.01 2000];
-    B_range = [0.01 2000];
+    A_range = [0 2000]; % [0.01 2000];
+    B_range = [0 2000];
     kappa_range = [0.05,10]; % 10 is maybe too high of a max, was set to 2 for nature paper.
 
     
@@ -117,9 +120,10 @@ if isempty(args.phatalt_start)
         k_range = [ 0.01 100];
         start_setting = [k_start,A_start,B_start,kappa_start,mu_start];
     end
-else
-    start_setting = args.phatalt_start;
-end
+
+    if sum(args.phatalt_start) 
+        start_setting = args.phatalt_start;
+    end
 
 if args.gamma
     lower_setting = [k_range(1) A_range(1) B_range(1) kappa_range(1) mu_range(1)];
@@ -136,7 +140,7 @@ end
 
 if args.jitter % check that the fit converged, if not, try jittering the data to get there
     if isnan(pci_alt)
-        Datatmp = vonMisesJitter(X, Ang, 'gamma',args.gamma,'jittersize',args.jittersize,'baselinecomparison',args.baselinecomparison);
+        Datatmp = vonMisesJitter(X, Ang, 'gamma',args.gamma,'baselinecomparison',args.baselinecomparison);
         start_setting = Datatmp.phat_alt; % find a better start setting for the mle
         [phat_alt,pci_alt] = mle(X,'nloglf',nloglf_alt,'options',options,...
             'lowerbound',lower_setting,'upperbound',upper_setting,...
@@ -145,26 +149,27 @@ if args.jitter % check that the fit converged, if not, try jittering the data to
 end
 
 % fit for the null hypotheis (distrubiton is flat)
-if isempty(args.phatnull_start)
     if args.gamma
         theta_start = var(X)./mean(X);
         k_start = mean(X)./theta_start;
-        start_setting = [k_start theta_start];
-        lower_setting = [0.01 0.01];
-        upper_setting = [200 1000];
+        start_setting_null = [k_start theta_start];
+        lower_setting_null = [0.01 0.01];
+        upper_setting_null = [200 1000];
     else
         theta_start = mean(X);
-        start_setting = theta_start;
-        lower_setting = 0.01;
-        upper_setting = 1000;
+        start_setting_null = theta_start;
+        lower_setting_null = 0.01;
+        upper_setting_null = 1000;
     end
-else
-    start_setting = args.phatnull_start;
-end
+% else
+    if sum(args.phatnull_start)
+        start_setting_null = args.phatnull_start;
+    end
+
 
 [phat_null,pci_null] = mle(X,'nloglf',nloglf_null,'options',options,...
-    'lowerbound',lower_setting,'upperbound',upper_setting,...
-    'start',start_setting);
+    'lowerbound',lower_setting_null,'upperbound',upper_setting_null,...
+    'start',start_setting_null);
 
 % test out the two fits on the data
 if args.gamma
@@ -211,8 +216,11 @@ end
 
 % Calculating the bandwidth of the curve fit - in radians
 halfmaxline = ((max(Data.Vm.X) - min(Data.Vm.X)) /2) + min(Data.Vm.X); 
-inds = find(round(Data.Vm.X) == round(halfmaxline));
-Data.bandwidth = abs(angle(exp(1i*Data.Fit.Angle(inds(1)))./exp(1i*Data.Fit.Angle(inds(end))))); % this is just circ_dist
+inds = find(Data.Vm.X >= halfmaxline);  % used to be ..... inds = find(round(Data.Vm.X) >= round(halfmaxline)); 
+Data.bandwidth = abs(circ_dist(Data.Fit.Angle(min(inds)), Data.Fit.Angle(max(inds))));
+% Data.bandwidth = abs(angle(exp(1i*Data.Fit.Angle(inds(1)))./exp(1i*Data.Fit.Angle(inds(end))))); % this is just circ_dist
+
+
 
 % x = Data.Fit.Angle;
 % y = Data.Fit.X;

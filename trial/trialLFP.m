@@ -8,9 +8,9 @@ function [Lfp] = trialLFP(o,varargin)
 %
 % Optional arguments:
 %   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
-%   onset - time point to onset data to (ie target onset, stimulus onset, etc) default is trial start
-%   onsetvector? - maybe a way of inputing an optional alingment time points, like
-%   saccade times, onseted to start of trial > make sure its in ms from
+%   onset - neurostim time point to align data to (ie target onset, stimulus onset, etc) default is trial start
+%   onsetvector - a way of inputing an optional alingment time points, like
+%   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
 %   trind = logical vector to tell which trials to use
 %   bn - time bin around onset time
@@ -78,16 +78,16 @@ if max(stop) > o.lfp.numSamples ||  min(start) < 1
     error('your window is bigger than your trial!') 
 end
 
-if numel(chan_ind) == 1
-    Lfp(1,:,:) = lfps(start:stop,trind)';
-else
+% if numel(chan_ind) == 1
+%     Lfp(1,:,:) = lfps(start:stop,trind)';
+% else
     Lfp = nan(numel(chan_ind), sum(trind), diff(args.bn)+1);
     for ich = 1:numel(chan_ind)
         ch = chan_ind(ich);
         trlfp = squeeze(lfps(:,trind,ch))';
         Lfp(ich,:,:) = trlfp(:,start:stop); 
     end
-end
+% end
 
 end
 
