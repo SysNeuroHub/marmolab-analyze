@@ -39,6 +39,7 @@ p.addParameter('shank',0);
 p.addParameter('channelOrder',[]);
 p.addParameter('subject','CJ000');
 p.addParameter('date',"00/00/00");
+p.addParameter('freq',0);
 p.parse(varargin{:});
 pa = p.Results;
 
@@ -83,8 +84,10 @@ for b = 1:sz % work through channels
         
         opt = optimoptions('lsqnonlin','Display','off'); %,'Display','iter'); %odeset('RelTol',1e-8,'AbsTol',1e-16);
         myObj = @(pa) costFn(logiFun(pa,1:sz), thisCh);
-        lb = []; % so far, this seems to converge fine without constraints
-        ub = [];
+        lb = [1,-inf,-pi,-pi]; % so far, this seems to converge fine without constraints
+        ub = [16,inf,pi,pi];
+%         lb = [];
+%         ub = [];
 
         pFinal(b,:) = lsqnonlin(myObj, pInit,lb,ub,opt); %, mo.lb, mo.ub);
     end
@@ -100,8 +103,6 @@ pInit = [round(sz/2) 0.5 leftGuess rightGuess];
 pMu = lsqnonlin(myObj, pInit,lb,ub,opt); %, mo.lb, mo.ub);
 
 pos.indiv = pFinal(:,1);
-pos.indivMed = median(pos.indiv);
-pos.mu = pMu(1);
 
 %% Statistics
 % Use F-test to compare sigmoid fits with a flat line
@@ -111,11 +112,7 @@ dfConst = sz - 1; % degrees of freedom
 dfSig = sz - 4; % 4 parameters
 
 stats.muConst = angle(sum(exp(1i*muPMA)));
-stats.indivConst = angle(sum(exp(1i*PMA),2)); 
-
-% preallocate might be useful?
-% stats.indivP = zeros(sz,sz);
-% stats.indivF = zeros(sz,1);
+stats.indivConst = angle(sum(exp(1i*PMA),2));
 
 [stats.muP, stats.muF] = ftest(muPMA, stats.muConst,logiFun(pMu,1:sz), dfConst, dfSig);
 % [stats.muP, stats.muF] = ftest(length(muPMA), ,length(logiFun(pMu,1:sz)), dfConst, dfSig);
@@ -123,6 +120,32 @@ for a = 1:length(PMA)
     [stats.indivP(a,:), stats.indivF(a)] = ftest(PMA(a,:), stats.indivConst(a),logiFun(pFinal(a,:),1:sz), dfConst, dfSig);
 end
 
+% processing to exclude transition estimates outside 1-16
+% also if p value is 1, could justify exlcuding because it's just randomly
+% predicting
+countOutsideBounds = 0;
+countP1 = 0;
+% for i = 1:length(pos.indiv)
+%     if pos.indiv(i) < 1 | pos.indiv(i) > 16
+%         pos.indiv(i) = NaN;
+%         countOutsideBounds = countOutsideBounds + 1;
+%         indexOutsideBounds(countOutsideBounds) = i;
+%     elseif stats.indivP(i) == 1
+%         pos.indiv(i) = NaN;
+%         countP1 = countP1 + 1;
+%         indexP1(countP1) = i;
+%     end
+% end
+
+% some measure of potential false positives - either outside bounds or
+% unlikely transition correctly identified
+% interpreting "false positive" as prediciting a transition when practical
+% evidence suggests the transition cannot be guaranteed to exist there
+% based on how it has been predicted
+FalsePos = (countOutsideBounds + countP1)/16*100;
+
+pos.indivMed = median(pos.indiv);
+pos.mu = pMu(1);
 
 %% PLOTTING
 
@@ -132,7 +155,7 @@ if pa.plotSigmoid
     xx = 1:sz;
     nX = ceil(sqrt(sz));
     nY = ceil(sz/nX);
-    sgtitle("") % may need to know array and shank number from plotDataDive()
+    sgtitle(pa.subject + " " + pa.date + " Shank " + pa.shank + " " + pa.freq);
     
 %     for b = 1:sz
     for b = 1:length(pFinal)
@@ -146,9 +169,14 @@ if pa.plotSigmoid
         axis([0 sz -pi pi])
         set(gca,'ytick',[-pi 0 pi],'yticklabel',{'-\pi','0','\pi'})
         
-        %         axis off
-        %         title("Ch"+b);
-        title("Ch"+channelOrder(b)+ " - " + ptext(stats.indivP(b)))
+        % for significance
+        if stats.indivP(b) < 0.05
+            signif = '*';
+        else
+            signif = '';
+        end
+
+            title("Ch"+pa.channelOrder(b)+ " - " + ptext(stats.indivP(b)) + signif)
     end
 end
 
@@ -160,7 +188,9 @@ if pa.plotHeat
     imagesc(PMA)
     hold on
     for b = 1:sz
-        plot(pFinal(b,1)*[1 1],[b-0.5 b+0.5],'r','linewidth',2)
+%         if b ~= indexOutsideBounds & b ~= indexP1
+            plot(pFinal(b,1)*[1 1],[b-0.5 b+0.5],'r','linewidth',2)
+%         end
     end
     ax = axis;
     axis(ax+[0 0 0 1])

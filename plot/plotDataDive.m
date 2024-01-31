@@ -14,54 +14,61 @@ p.KeepUnmatched = true;
 p.parse(varargin{:});
 
 %% Multitaper - test different frequency bands
-
-spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',[4 12 20 40]);
+% run section once - very time-consuming step!
+% spikephase too big to save as variable in workspace
+freqInput = 40; % gamma range appparently better for observing transition
+spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',freqInput); %[4 12 20 40]
 spikephase = squeeze(spikephase);
 
 
 %% Analysis of subset of trials
 % There are 3600 trials, 4 frequencies, and 64 channels (64 x 64)
 
-% To extract a subset of the 3600 trials:
-subset = 100; % adjust as necessary - will define # trials per subset
-num_iterations = 3600/subset;
-lowvar = 1;
-hivar = subset;
-
-for i = 1:num_iterations
-    % Finds subset data
-    tmp = cellfun(@(x, a) x(lowvar:hivar), spikephase, 'UniformOutput', false);
-    
-    % Name subset data variable
-    var_name = sprintf('subset%d',i);
-    var_name_arr{i}= var_name;
-    
-    % saves subset data into subset variable
-    eval([var_name '=tmp']);
-    
-    % update to next subset
-    lowvar = lowvar + subset;
-    hivar = hivar + subset;
-end
+% % To extract a subset of the 3600 trials:
+% subset = 100; % adjust as necessary - will define # trials per subset
+% num_iterations = 3600/subset;
+% lowvar = 1;
+% hivar = subset;
+% 
+% for i = 1:num_iterations
+%     % Finds subset data
+%     tmp = cellfun(@(x, a) x(lowvar:hivar), spikephase, 'UniformOutput', false);
+%     
+%     % Name subset data variable
+%     var_name = sprintf('subset%d',i);
+%     var_name_arr{i}= var_name;
+%     
+%     % saves subset data into subset variable
+%     eval([var_name '=tmp']);
+%     
+%     % update to next subset
+%     lowvar = lowvar + subset;
+%     hivar = hivar + subset;
+% end
 
 % Import Intan array
 array = input("Filepath for channel order:"); % marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
 channelOrder = array.electrode{1,1}.chanMap;
 
+%% SPI and PMP computation
 % Autofill SPI and PMP matrices to suit size of array
-nfreq = 4;
+nfreq = length(freqInput);
 SPI = nan(nfreq, numel(channelOrder),numel(channelOrder)); % spike phase index (circ_r)
 PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phase (circ_m)
 
 % SPI + PMP ordered by depth
-for ifreq = 1:4
+for ifreq = 1:nfreq
     for icell = 1:numel(channelOrder)
         cellind = channelOrder(icell);
         for ilfp = 1:numel(channelOrder)
             lfpind = channelOrder(ilfp);
-            if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-                SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+%             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
+%                 SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
+%                 PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+%             end
+            if ~isempty([spikephase{cellind,lfpind}{:}])
+                SPI(ifreq, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
+                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
             end
         end
     end
@@ -70,6 +77,7 @@ end
 
 % Plot title lists (don't change so leave outside loop)
 freqsList = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
+freqsList = freqsList{1:nfreq}; % won't do it correctly if you only use one frequency e.g. just gamma
 shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
 shanksListCount = [1,4,2,3];
 
@@ -153,7 +161,7 @@ shanksListCount = [1,4,2,3];
 %     sgtitle("SPI - CJ223 13/09/22 055339 MT")
 %     
     
-    % Plotting PMP results
+%% Plotting PMP results
     
 %     figure(); 
     
@@ -188,7 +196,8 @@ shanksListCount = [1,4,2,3];
 %             save(fullFilepath,'tmp');
             
             % Alternative approach - call fitSigmoid from here each time
-            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date);
+%             fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList{ifreq});
+            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList);
                 
             % Increment counters
             chanIndex = chanIndex + 16;
@@ -197,8 +206,6 @@ shanksListCount = [1,4,2,3];
         end
     end
 
-    
-    
     
     % % Overarching frequency titles 
 %     row_height = 0.1;
