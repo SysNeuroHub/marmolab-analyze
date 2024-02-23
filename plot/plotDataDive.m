@@ -1,27 +1,85 @@
 function plotDataDive(o,varargin)
 
-% plots a whole bunch of laminar spike-phase figures for an mdbase object
-% from maureen's data dive 23/05/15
-
-% adjusted to be used for acute experiments 15/9/23
-
-% Load data as follows:
-% load("/home/marmolab/data2/2022/09/13/CJ223.motionStim.055339_MT.mdm",'-mat');
-% then run plotDataDive(d)
+% Determines SPI and PMP from spiking data
+% Runs fitSigmoidPMA to fit PMP data shank by shank to sigmoid curve for determining transition around layer IV 
 
 p = inputParser();
 p.KeepUnmatched = true;
 p.parse(varargin{:});
 
 %% Multitaper - test different frequency bands
-% run section once - very time-consuming step!
-% spikephase too big to save as variable in workspace
+% Notes: 
+% -- only run this section once if you can - very time-consuming!
+% -- spikephase variable is too large to save 
 freqInput = 40; % gamma range appparently better for observing transition
 spikephase = trialSpikeLFPPhase(o,'bn',[0,1000],'method','MT','tapers',[0.5,10],'fk',freqInput); %[4 12 20 40]
 spikephase = squeeze(spikephase);
 
 
 %% Analysis of subset of trials
+% Import Intan array
+array = input("Filepath for channel order:"); % marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
+channelOrder = array.electrode{1,1}.chanMap;
+
+%% SPI and PMP computation
+% Autofill SPI and PMP matrices to suit size of array
+nfreq = length(freqInput);
+SPI = nan(nfreq, numel(channelOrder),numel(channelOrder)); % spike phase index (circ_r)
+PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phase (circ_m)
+
+% SPI + PMP ordered by depth
+for ifreq = 1:nfreq
+    for icell = 1:numel(channelOrder)
+        cellind = channelOrder(icell);
+        for ilfp = 1:numel(channelOrder)
+            lfpind = channelOrder(ilfp);
+            if ~isempty([spikephase{cellind,lfpind}{:}])
+                SPI(ifreq, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
+                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
+            end
+        end
+    end
+end
+
+%% If multiple frequencies replace similar IF statement from above loop with the following:
+% if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
+%     SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
+%     PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
+% end
+
+%% Ordering frequencies and shanks 
+freqsList = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
+freqsList = freqsList{1:nfreq}; % won't do it correctly if you only use one frequency e.g. just gamma
+shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
+shanksListCount = [1,4,2,3];
+    
+%% To call SigmoidPMA()  
+    % Counter reset
+    plotCount =1; % counts subplot #
+    
+    for ifreq = 1:nfreq
+        chanIndex = 1; % counts 1-64 in 16-electrode-increments for each shank
+        shankCount = 1; % counts 1-4 for shank titles 
+        
+        while chanIndex < 65
+            
+            % Data for each shank
+            tmp = squeeze(PMP(ifreq,chanIndex:chanIndex+15,chanIndex:chanIndex+15));
+            
+            % Alternative approach - call fitSigmoid from here each time
+            % fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList{ifreq}); % use if multiple frequencies
+            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList);
+                
+            % Increment counters
+            chanIndex = chanIndex + 16;
+            shankCount = shankCount+1;
+            plotCount = plotCount + 1;
+        end
+    end
+
+%% ----- CODE NOT CURRENTLY IN USE ----- %%
+
+%% For extracting a subsets of trials
 % There are 3600 trials, 4 frequencies, and 64 channels (64 x 64)
 
 % % To extract a subset of the 3600 trials:
@@ -46,41 +104,7 @@ spikephase = squeeze(spikephase);
 %     hivar = hivar + subset;
 % end
 
-% Import Intan array
-array = input("Filepath for channel order:"); % marmodata.cfgs.acute.H64FlexiH64FlexiIntan();
-channelOrder = array.electrode{1,1}.chanMap;
-
-%% SPI and PMP computation
-% Autofill SPI and PMP matrices to suit size of array
-nfreq = length(freqInput);
-SPI = nan(nfreq, numel(channelOrder),numel(channelOrder)); % spike phase index (circ_r)
-PMP = nan(nfreq, numel(channelOrder),numel(channelOrder)); % preferred mean phase (circ_m)
-
-% SPI + PMP ordered by depth
-for ifreq = 1:nfreq
-    for icell = 1:numel(channelOrder)
-        cellind = channelOrder(icell);
-        for ilfp = 1:numel(channelOrder)
-            lfpind = channelOrder(ilfp);
-%             if ~isempty([spikephase{ifreq,cellind,lfpind}{:}])
-%                 SPI(ifreq, icell,ilfp) = circ_r([spikephase{ifreq,cellind,lfpind}{:}]');
-%                 PMP(ifreq, icell,ilfp) = circ_mean([spikephase{ifreq,cellind,lfpind}{:}]');
-%             end
-            if ~isempty([spikephase{cellind,lfpind}{:}])
-                SPI(ifreq, icell,ilfp) = circ_r([spikephase{cellind,lfpind}{:}]');
-                PMP(ifreq, icell,ilfp) = circ_mean([spikephase{cellind,lfpind}{:}]');
-            end
-        end
-    end
-end
-
-
-% Plot title lists (don't change so leave outside loop)
-freqsList = {'Theta 4Hz', 'Alpha 12Hz', 'Beta 20Hz', 'Gamma 40Hz'};
-freqsList = freqsList{1:nfreq}; % won't do it correctly if you only use one frequency e.g. just gamma
-shanksList = {'Shank 1','Shank 4','Shank 2','Shank 3',};
-shanksListCount = [1,4,2,3];
-
+%% SPI and PMP computation for subsets of trials
 % subset_input = 1;
 % 
 % while (subset_input <=36)
@@ -104,11 +128,11 @@ shanksListCount = [1,4,2,3];
 %             end
 %         end
     % end
-    
-    %% Plotting results
+
+%% SPI plotting
     
     % Counter initialise
-    plotCount = 1; % counts subplot #
+%     plotCount = 1; % counts subplot #
     
     % Plotting SPI results
     
@@ -160,22 +184,20 @@ shanksListCount = [1,4,2,3];
 %     
 %     sgtitle("SPI - CJ223 13/09/22 055339 MT")
 %     
-    
-%% Plotting PMP results
-    
+%% PMP plotting
 %     figure(); 
     
     % Counter reset
-    plotCount =1; % counts subplot #
-    
-    for ifreq = 1:nfreq
-        chanIndex = 1; % counts 1-64 in 16-electrode-increments for each shank
-        shankCount = 1; % counts 1-4 for shank titles 
-        
-        while chanIndex < 65
-            
-            % Data for each shank
-            tmp = squeeze(PMP(ifreq,chanIndex:chanIndex+15,chanIndex:chanIndex+15));
+%     plotCount =1; % counts subplot #
+%     
+%     for ifreq = 1:nfreq
+%         chanIndex = 1; % counts 1-64 in 16-electrode-increments for each shank
+%         shankCount = 1; % counts 1-4 for shank titles 
+%         
+%         while chanIndex < 65
+%             
+%             % Data for each shank
+%             tmp = squeeze(PMP(ifreq,chanIndex:chanIndex+15,chanIndex:chanIndex+15));
 
 %             % Plot PMP
 %             subplot(nfreq,length(shanksList),plotCount)
@@ -194,17 +216,14 @@ shanksListCount = [1,4,2,3];
 %             filePath = "/home/tjaw/Documents";
 %             fullFilepath = fullfile(filePath,fileName);
 %             save(fullFilepath,'tmp');
-            
-            % Alternative approach - call fitSigmoid from here each time
-%             fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList{ifreq});
-            fitSigmoidPMA(tmp,'plotSigmoid','true','plotHeat','true','channelOrder',channelOrder,'shank',shanksListCount(shankCount),'subject',o.subject,'date',o.date,'freq',freqsList);
+          
                 
             % Increment counters
-            chanIndex = chanIndex + 16;
-            shankCount = shankCount+1;
-            plotCount = plotCount + 1;
-        end
-    end
+%             chanIndex = chanIndex + 16;
+%             shankCount = shankCount+1;
+%             plotCount = plotCount + 1;
+%         end
+%     end
 
     
     % % Overarching frequency titles 
