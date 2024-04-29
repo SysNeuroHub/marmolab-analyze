@@ -36,7 +36,7 @@ p.KeepUnmatched = true;
 p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x)); %validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numChannels),'<=',max(o.spikes.numChannels)}));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
-p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
+p.addParameter('onsetvector',[]); %,@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
 p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
 
 p.parse(varargin{:});

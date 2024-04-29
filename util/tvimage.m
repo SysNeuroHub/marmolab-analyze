@@ -54,9 +54,13 @@ YNTicks = args.YNTicks;
 sIm=size(image);
 if isempty(args.XRange)
 XRange=[0,sIm(1)];
+else
+    XRange = args.XRange;
 end
 if isempty(args.YRange)
 YRange=[0,sIm(2)];
+else
+    YRange = args.YRange;
 end
 
 CLim = args.CLim;
