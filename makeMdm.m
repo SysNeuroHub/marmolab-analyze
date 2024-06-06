@@ -49,7 +49,7 @@ if isempty(args.paradigm), error('must provide a paradigm!'), end
 
 % step 1 - find all of the files for a given task on on a given day.
 
-Files = dir([args.path filesep args.subject '.' args.paradigm '*' '.mat']); 
+Files = dir([args.path filesep args.subject '.' args.paradigm '.*' '.mat']); 
 
 filenames = cell(1,numel(Files));
 for ifile = 1:numel(Files)
@@ -79,6 +79,7 @@ end
 
 % eye data only
 if args.eye && isempty(args.spikes) && isempty(args.lfp)
+%     d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'loadEye',args.eye});
     d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye});
     fprintf('returning eye and ns data only!')
 end
