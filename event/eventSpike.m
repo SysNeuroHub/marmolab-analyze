@@ -1,0 +1,113 @@
+function [Spike, chan_ind, unit_ind] = eventSpike(o,varargin)
+
+% adapted from trialSpike, but loads spikes across events within a trial,
+% can have multiple events (ie saccades, stimulus presentations)
+
+%  loads spike data across events, onseted to particular trial
+%  timepoints
+%
+% Input:
+%   o = mdbase object with spiking data
+%
+% Optional arguments:
+%   channels - channels to load LFP data for (defaut: o.lfp.numChannels)
+%   eventonsets - a cell array, one cell per trial that can contain
+%   mulitple time points per trial to align data from (default: start of
+%  each trial)
+%   > make sure its in ms from
+%   trial start!
+%   trind = logical vector to tell which trials to use
+%   bn - time bin around onset time
+%
+% Output
+%   spike - a cell array of spike times in ms for each events 
+%
+% 2025-06-17 - Maureen Hagan <maureen.hagan@monash.edu>
+
+
+p = inputParser();
+p.KeepUnmatched = true;
+p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
+p.addParameter('units',[],@(x) isnumeric(x) || isempty(x));
+p.addParameter('onset','',@(x) ischar(x) || isempty(x));
+p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
+p.addParameter('eventonsets',[]);
+p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+
+p.parse(varargin{:});
+
+args = p.Results;
+
+if isempty(args.channels) % if empty, load everything
+    args.channels = o.spikes.chanIds;
+end
+
+if isempty(args.eventonsets)
+    error('please provide the events you want spikes aligned to')
+end
+
+% get indexes for all channels/units
+tmp = squeeze(any(cellfun(@(x) ~isempty(x),o.spikes.spk),2));
+
+if size(o.spikes.spk,1) > 1 % kilo sorted data with more than one unit, or one channel of data
+    [all_units,all_channels] = ind2sub(size(tmp),find(tmp));
+elseif size(o.spikes.spk,1) == 1 && size(o.spikes.spk,3) > 1 % more than one ghetto channel
+    [all_units,all_channels] = ind2sub(size(tmp'),find(tmp'));
+end
+
+chanlist = o.spikes.chanIds(all_channels);
+ix = ismember(chanlist,args.channels);
+chan_ind = all_channels(ix); unit_ind = all_units(ix);
+
+
+% find the overalp with requested channels
+
+%find which trials to use
+if isempty(args.trind)
+    if isprop(o,'complete'), trind = o.complete;
+    else, trind = true(1,o.spikes.numTrials);
+    end
+else, trind = args.trind;
+end
+
+% this needs to be provided
+% % get an onset time in ms for each trial
+% if isempty(args.eventonsets)
+%     eventonsets = cell(1,trind);
+% 
+%     	onsets = o.meta.(args.onset).startTime.time - o.meta.cic.firstFrame.time; % onset time to the nearest s
+%     else
+%         onsets = ones(1,o.spikes.numTrials);
+%     end
+% else, onsets = args.onsetvector;
+% end
+% onsets = onsets(trind);
+
+Spike = cell(1,numel(chan_ind));
+
+trials = 1:o.spikes.numTrials;
+trials = trials(trind);
+bn = args.bn./1e3;
+
+for ich = 1:numel(chan_ind)
+    channel = chan_ind(ich);
+    unit = unit_ind(ich);
+    Spike{ich} = cell(1,sum(trind));
+    for itr = 1:numel(trials)
+        trial = trials(itr);
+        nevents = numel(args.eventonsets{itr});
+        Spike{ich}{itr} = cell(1,nevents);
+        for iev = 1:nevents
+        start = args.eventonsets{itr}(iev)./1e3 + bn(1); % convert event to seconds
+        timestamps = o.spikes.spk{unit,trial,channel} - start;
+        Spike{ich}{itr}{iev} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
+        end
+    end
+end
+
+% if numel(chan_ind) == 1 
+%     Spike = Spike{1};
+% end
+
+end
+
