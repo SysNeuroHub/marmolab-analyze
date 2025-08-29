@@ -60,9 +60,29 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-Spike = trialSpike(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind);
+[spike, chan_ind, unit_ind] = trialSpike(o,'channels',args.channels,'onset',args.onset,'bn', args.bn, 'onsetvector',args.onsetvector,'trind',args.trind);
 
-
+% hack for kilosorted data... this is sort of ugly. maybe we want to change this later. right
+% now, make a 'multiunit' for each channel - should still be cleaner
+% because its sorted? 
+Spike = cell(1,numel(args.channels));
+ntr = numel(spike{1});
+if sum(unit_ind > 1) % kilosorted data with more than one spike per channel
+    uni_chan = unique(chan_ind);
+    for ich = 1:numel(args.channels)
+        for itr = 1:ntr
+            Spike{ich} = cell(1,ntr);
+            if ismember(ich,uni_chan)
+                tmp = spike(chan_ind == ich);
+                for iunit = 1:numel(tmp)
+                    Spike{ich}{itr} = [Spike{ich}{itr} spike{iunit}{itr}];
+                end
+            end
+        end
+    end
+else
+    Spike = spike;
+end
 
 switch args.method
     case 'MT'

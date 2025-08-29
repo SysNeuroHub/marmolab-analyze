@@ -22,8 +22,8 @@ function Data = vonMisesFit(X, Ang, varargin)
 
 p = inputParser();
 
-p.addParameter('phatalt_start',[],@(x) validateattributes(x,{'numeric'}));
-p.addParameter('phatnull_start',[],@(x) validateattributes(x,{'numeric'}));
+p.addParameter('phatalt_start',[]); %,@(x) validateattributes(x,{'numeric'}));
+p.addParameter('phatnull_start',[]) %,@(x) validateattributes(x,{'numeric'}));
 p.addParameter('baselinecomparison',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('gamma',false,@(x) validateattributes(x,{'logical'},{'nonempty'}));
 p.addParameter('constrainmu',false,@(x) validateattributes(x,{'logical'},{'nonempty'})); % constrain mu to be near circular mean > requires circ stat toolbox!
@@ -52,64 +52,67 @@ else
     nloglf_null = @(params,data,cens,freq) nloglfConstantPoisson(params,data);
 end
 
+
+
+A_range = [0.01 2000];
+B_range = [0.01 2000];
+kappa_range = [0.05,10]; % 10 is maybe too high of a max, was set to 2 for nature paper.
+
+
+
+bins{1}(1,:) = [-pi,-pi+pi./4];
+bins{2}(1,:) = [-3*pi./4,-pi./2];
+bins{3}(1,:) = [-pi./2,-pi./4];
+bins{4}(1,:) = [-pi./4,0];
+bins{5}(1,:) = [0,pi./4];
+bins{6}(1,:) = [pi./4,pi./2];
+bins{7}(1,:) = [pi./2,3*pi./4];
+bins{8}(1,:) = [3*pi./4,pi];
+bin_axis=-pi+pi/8:pi/4:pi;
+
+x = calcTuningCurve(Ang,X, bins);
+
+A_start = median(x);
+B_start = max(x)-min(x);
+kappa_start = 1.5;
+[~,ind]=max(x);
+
+if args.constrainmu
+    % use circ stat toolbox?
+    mu = circ_mean(Ang);
+    t = circ_confmean(Ang,0.2);
+    mu_start = mu;
+    mu_range = [mu-t,mu+t];
+else
+    mu_start = bin_axis(ind);
+    mu_range = [-pi,pi];
+end
+
+
+
+% check to see if the most deviated bin is above or below the
+% median (if you suspect an inverted tuning curve)
+if args.baselinecomparison
+    bins = -pi:pi/4:pi;
+    nbins = length(bins)-1;
+    binX = zeros(1,nbins);
+    
+    for ibn = 1:nbins
+        start = bins(ibn);
+        stop = bins(ibn)+1;
+        
+        binX(ibn) = mean(X(Ang>=start & Ang<stop));
+    end
+    Xdiff = abs(binX - A_start);
+    [~, maxind] = max(Xdiff);
+    if Xdiff(maxind) < 0
+        B_start = min(x)-max(x); B_range = [ -2000 -0.01 ];
+        
+    end
+end
+
 % Choose parameter starting points
 if isempty(args.phatalt_start)
-    
-    bins{1}(1,:) = [-pi,-pi+pi./4];
-    bins{2}(1,:) = [-3*pi./4,-pi./2];
-    bins{3}(1,:) = [-pi./2,-pi./4];
-    bins{4}(1,:) = [-pi./4,0];
-    bins{5}(1,:) = [0,pi./4];
-    bins{6}(1,:) = [pi./4,pi./2];
-    bins{7}(1,:) = [pi./2,3*pi./4];
-    bins{8}(1,:) = [3*pi./4,pi];
-    bin_axis=-pi+pi/8:pi/4:pi;
-    
-    x = calcTuningCurve(Ang,X, bins);
-    
-    A_start = median(x);
-    B_start = max(x)-min(x);
-    kappa_start = 1.5;
-    [~,ind]=max(x);
-    
-    if args.constrainmu
-        % use circ stat toolbox?
-        mu = circ_mean(Ang);
-        t = circ_confmean(Ang,0.2);
-        mu_start = mu; 
-        mu_range = [mu-t,mu+t];
-    else
-        mu_start = bin_axis(ind);
-        mu_range = [-pi,pi];
-    end
-    
-    
-    A_range = [0.01 2000];
-    B_range = [0.01 2000];
-    kappa_range = [0.05,10]; % 10 is maybe too high of a max, was set to 2 for nature paper.
-
-    
-    % check to see if the most deviated bin is above or below the
-    % median (if you suspect an inverted tuning curve)
-    if args.baselinecomparison
-        bins = -pi:pi/4:pi;
-        nbins = length(bins)-1;
-        binX = zeros(1,nbins);
-        
-        for ibn = 1:nbins
-            start = bins(ibn);
-            stop = bins(ibn)+1;
-            
-            binX(ibn) = mean(X(Ang>=start & Ang<stop));
-        end
-        Xdiff = abs(binX - A_start);
-        [~, maxind] = max(Xdiff);
-        if Xdiff(maxind) < 0
-            B_start = min(x)-max(x); B_range = [ -2000 -0.01 ];
-            
-        end
-    end
-    
     start_setting = [A_start,B_start,kappa_start,mu_start];
     
     if args.gamma % gamma distribution has one extra parameter
@@ -134,15 +137,15 @@ end
     'lowerbound',lower_setting,'upperbound',upper_setting,...
     'start',start_setting);
 
-if args.jitter % check that the fit converged, if not, try jittering the data to get there
-    if isnan(pci_alt)
-        Datatmp = vonMisesJitter(X, Ang, 'gamma',args.gamma,'jittersize',args.jittersize,'baselinecomparison',args.baselinecomparison);
-        start_setting = Datatmp.phat_alt; % find a better start setting for the mle
-        [phat_alt,pci_alt] = mle(X,'nloglf',nloglf_alt,'options',options,...
-            'lowerbound',lower_setting,'upperbound',upper_setting,...
-            'start',start_setting);
-    end
-end
+% if args.jitter % check that the fit converged, if not, try jittering the data to get there
+%     if isnan(pci_alt)
+%         Datatmp = vonMisesJitter(X, Ang, 'gamma',args.gamma,'jittersize',args.jittersize,'baselinecomparison',args.baselinecomparison);
+%         start_setting = Datatmp.phat_alt; % find a better start setting for the mle
+%         [phat_alt,pci_alt] = mle(X,'nloglf',nloglf_alt,'options',options,...
+%             'lowerbound',lower_setting,'upperbound',upper_setting,...
+%             'start',start_setting);
+%     end
+% end
 
 % fit for the null hypotheis (distrubiton is flat)
 if isempty(args.phatnull_start)
@@ -160,6 +163,8 @@ if isempty(args.phatnull_start)
     end
 else
     start_setting = args.phatnull_start;
+    lower_setting = 0.01;
+    upper_setting = 1000;
 end
 
 [phat_null,pci_null] = mle(X,'nloglf',nloglf_null,'options',options,...
@@ -210,25 +215,25 @@ end
 
 
 % Calculating the bandwidth of the curve fit - in radians
-halfmaxline = ((max(Data.Vm.X) - min(Data.Vm.X)) /2) + min(Data.Vm.X); 
+halfmaxline = ((max(Data.Vm.X) - min(Data.Vm.X)) /2) + min(Data.Vm.X);
 inds = find(Data.Vm.X >= halfmaxline);
 Data.bandwidth = abs(angle(exp(1i*Data.Fit.Angle(inds(1)))./exp(1i*Data.Fit.Angle(inds(end))))); % this is just circ_dist
 
 % x = Data.Fit.Angle;
 % y = Data.Fit.X;
 % l = halfmaxline;
-% 
+%
 
-% 
+%
 % if length(unique(y)) <= 1
 %     Data.bandwidth = NaN;
-% else 
+% else
 %     [~,idx] = max(y);
 %     xq(1) = interp1(y(1:idx),x(1:idx), l);
 %     xq(2) = interp1(y(idx+1:end), x(idx+1:end), l);
-%     
+%
 %     Data.bandwidth = abs(xq(1) - xq(2));
-% end 
+% end
 
 
 end

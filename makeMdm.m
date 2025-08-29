@@ -38,6 +38,7 @@ p.addParameter('filtertype','multitaper',@(x) ischar(x) || isempty(x));
 p.addParameter('cfg','',@(x) ischar(x) || isempty(x)); % 'marmodata.cfgs.mbi.A1x32_100um' for centre array 'marmodata.cfgs.mbi.A1x32_Edge_100um'
 p.addParameter('reload',true,@(x) validateattributes(x,{'logical'},{'scalar'})); % eventually need to sort this out
 p.addParameter('overwrite',true,@(x) validateattributes(x,{'logical'},{'scalar'})); % eventually need to sort this out
+p.addParameter('force',false,@(x) validateattributes(x,{'logical'},{'scalar'})); % eventually need to sort this out
 
 p.parse(varargin{:});
 
@@ -54,7 +55,6 @@ Files = dir([args.path filesep args.subject '.' args.paradigm '.*' '.mat']);
 filenames = cell(1,numel(Files));
 for ifile = 1:numel(Files)
     filenames{ifile} = Files(ifile).name;
-    
 end
 
 % file name to save out to:
@@ -102,9 +102,8 @@ end
 
 % everything (preferable!)
 if args.eye && ~isempty(args.spikes) && ~isempty(args.lfp)
-    assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
-     
-    d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye,'spikes',args.spikes,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload});
+      assert(exist(args.cfg,'class') == 8,'''cfg'' must be the name of a valid ephys configuration, e.g., from marmodata.cfgs.');
+      d = marmodata.mdbase(filenames,'path', args.path,'loadArgs',{'eye',args.eye,'spikes',args.spikes,'lfp',args.lfp,'filtertype',args.filtertype,'channels',args.channels,'cfg',args.cfg,'reload', args.reload,'force',args.force});
     fprintf(['returning ' args.spikes ' spikes and lfp data'])
 end
 

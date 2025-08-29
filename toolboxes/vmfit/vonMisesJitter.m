@@ -28,7 +28,7 @@ while check && ind < 1e2
     if ~isnan(Datatmp.pci_alt), check = 0; end
 end
 if ~isnan(Datatmp.pci_alt)
-    Data = vonMisesFitGamma(X,Ang,Datatmp.phat_null,Datatmp.phat_alt);
+    Data = vonMisesFit(X,Ang,'phatnull_start',Datatmp.phat_null,'phatalt_start',Datatmp.phat_alt);
 else
     disp('jitter didnt work!')
     Data = Datatmp;

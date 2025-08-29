@@ -1,4 +1,4 @@
-function Rate = trialRate(o,varargin)
+function [Rate, chan_ind, unit_ind] = trialRate(o,varargin)
 
 %  Returns the spike rate for a set of trials from an mdbase object over a
 %  specified time bin
@@ -57,7 +57,7 @@ if isempty(args.trind)
 else, trind = args.trind;
 end
 
-spikes = trialSpike(o,'onset',args.onset,'trind', trind, 'channels', channels, 'bn',args.bn, 'onsetvector', args.onsetvector);
+[spikes, chan_ind, unit_ind] = trialSpike(o,'onset',args.onset,'trind', trind, 'channels', channels, 'bn',args.bn, 'onsetvector', args.onsetvector);
 
 if numel(spikes) == 1 
     Spikes{1} = spikes;

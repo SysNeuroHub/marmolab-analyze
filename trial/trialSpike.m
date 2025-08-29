@@ -1,4 +1,4 @@
-function [Spike] = trialSpike(o,varargin)
+function [Spike, chan_ind, unit_ind] = trialSpike(o,varargin)
 
 %  loads spike data across trials, onseted to particular trial
 %  timepoints
