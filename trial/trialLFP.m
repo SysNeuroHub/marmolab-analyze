@@ -85,7 +85,9 @@ end
     for ich = 1:numel(chan_ind)
         ch = chan_ind(ich);
         trlfp = squeeze(lfps(:,trind,ch))';
-        Lfp(ich,:,:) = trlfp(:,start:stop); 
+        for itr = 1:numel(trind)
+        Lfp(ich,itr,:) = trlfp(itr,start(itr):stop(itr)); 
+        end
     end
 % end
 
