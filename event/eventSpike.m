@@ -38,14 +38,12 @@ p.parse(varargin{:});
 
 args = p.Results;
 
-if isempty(args.channels) % if empty, load everything
-    args.channels = o.spikes.chanIds;
-end
-
 if isempty(args.eventonsets)
     error('please provide the events you want spikes aligned to')
 end
 
+if isempty(args.channels) % if empty, load everything
+    
 % get indexes for all channels/units
 tmp = squeeze(any(cellfun(@(x) ~isempty(x),o.spikes.spk),2));
 
@@ -56,8 +54,13 @@ elseif size(o.spikes.spk,1) == 1 && size(o.spikes.spk,3) > 1 % more than one ghe
 end
 
 chanlist = o.spikes.chanIds(all_channels);
-ix = ismember(chanlist,args.channels);
+ix = ismember(chanlist,o.spikes.chanIds);
 chan_ind = all_channels(ix); unit_ind = all_units(ix);
+
+else
+  chan_ind = args.channels;
+  unit_ind = ones(1,numel(chan_ind));
+end
 
 
 % find the overalp with requested channels

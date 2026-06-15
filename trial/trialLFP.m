@@ -12,7 +12,8 @@ function [Lfp] = trialLFP(o,varargin)
 %   onsetvector - a way of inputing an optional alingment time points, like
 %   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use
+%   trind = logical vector to tell which trials to use X actual trial
+%   numbers, logical was doing werid things.
 %   bn - time bin around onset time
 %
 % Output
@@ -56,7 +57,7 @@ lfps = o.lfp.get; % trials x samples > will need resizing for more than one chan
 
 %find which trials to use
 if isempty(args.trind)
-    if isprop(o,'complete'), trind = o.complete;
+    if isprop(o,'complete'), trind = find(o.complete);
     else, trind = true(1,o.lfp.numTrials);
     end
 else, trind = args.trind;
@@ -81,11 +82,13 @@ end
 % if numel(chan_ind) == 1
 %     Lfp(1,:,:) = lfps(start:stop,trind)';
 % else
-    Lfp = nan(numel(chan_ind), sum(trind), diff(args.bn)+1);
+    Lfp = nan(numel(chan_ind), numel(trind), diff(args.bn)+1);
     for ich = 1:numel(chan_ind)
         ch = chan_ind(ich);
         trlfp = squeeze(lfps(:,trind,ch))';
-        Lfp(ich,:,:) = trlfp(:,start:stop); 
+        for itr = 1:numel(trind)
+        Lfp(ich,itr,:) = trlfp(itr,start(itr):stop(itr)); 
+        end
     end
 % end
 
