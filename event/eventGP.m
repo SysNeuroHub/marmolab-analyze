@@ -17,10 +17,12 @@ function [gpLFP, gpPhi] = eventGP(o, varargin)
 %   channels    - channels to load (default: o.lfp.chanIds)
 %   eventonsets - cell array {1 x nTrials}, each cell a vector of event
 %                 onset times in ms from trial start
-%   trind       - logical trial-selection vector (default: o.complete)
+%   trind       - vector of trial numbers to use (default: find(o.complete))
 %   bn          - [pre post] time window in ms (default: [0 1000])
 %   fk          - [fmin fmax] frequency range in Hz for bandpass (default: [5 40])
 %   fs          - sampling rate in Hz (default: 1e3)
+%   rmEvoked    - if true, subtract the mean LFP across trials (per
+%                 channel) before filtering (default: false)
 %
 % Output:
 %   gpLFP - cell array {nCh x nTr}, each cell is [nevents x nSamples]
@@ -36,6 +38,7 @@ p.addParameter('eventonsets', []);
 p.addParameter('trind',       []);
 p.addParameter('fk',          [5, 40], @isnumeric);
 p.addParameter('fs',          1e3,     @isnumeric);
+p.addParameter('rmEvoked',    false, @islogical);
 
 p.parse(varargin{:});
 args = p.Results;
@@ -45,7 +48,7 @@ if numel(args.fk) ~= 2
 end
 
 Lfp = eventLFP(o, 'channels', args.channels, 'bn', args.bn, ...
-    'eventonsets', args.eventonsets, 'trind', args.trind);
+    'eventonsets', args.eventonsets, 'trind', args.trind, 'rmEvoked', args.rmEvoked);
 
 if ~iscell(Lfp), Lfp = {Lfp}; end
 

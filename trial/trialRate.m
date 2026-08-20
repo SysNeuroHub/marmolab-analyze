@@ -12,7 +12,7 @@ function [Rate, chan_ind, unit_ind] = trialRate(o,varargin)
 %   onsetvector - a way of inputing an optional alingment time points, like
 %   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use
+%   trind = vector of trial numbers to use (default: find(o.complete))
 %   bn - time bin around onset time
 %
 % Output
@@ -37,7 +37,7 @@ p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x)); %validateattribut
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[]); %,@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
-p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('trind',[]);
 
 p.parse(varargin{:});
 
@@ -51,15 +51,15 @@ end
 
 %find which trials to use
 if isempty(args.trind)
-    if isprop(o,'complete'), trind = o.complete;
-    else, trind = true(1,o.spikes.numTrials);
+    if isprop(o,'complete'), trind = find(o.complete);
+    else, trind = 1:o.spikes.numTrials;
     end
 else, trind = args.trind;
 end
 
 [spikes, chan_ind, unit_ind] = trialSpike(o,'onset',args.onset,'trind', trind, 'channels', channels, 'bn',args.bn, 'onsetvector', args.onsetvector);
 
-if numel(spikes) == 1 
+if isscalar(spikes) 
     Spikes{1} = spikes;
 else
     Spikes = spikes;

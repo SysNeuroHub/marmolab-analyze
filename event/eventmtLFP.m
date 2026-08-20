@@ -13,13 +13,15 @@ function [mtLFP, mtPhi] = eventmtLFP(o, varargin)
 %   channels    - channels to load (default: o.lfp.chanIds)
 %   eventonsets - cell array {1 x nTrials}, each cell a vector of event
 %                 onset times in ms from trial start
-%   trind       - logical trial-selection vector (default: o.complete)
+%   trind       - vector of trial numbers to use (default: find(o.complete))
 %   bn          - [pre post] time window in ms (default: [0 1000])
 %   tapers      - [N W] multitaper params: window duration (s) and
 %                 bandwidth (Hz) (default: [0.5 10])
 %   fs          - sampling rate in Hz (default: 1e3)
 %   fk          - frequency or vector of frequencies to filter at (Hz)
 %                 (default: 20)
+%   rmEvoked    - if true, subtract the mean LFP across trials (per
+%                 channel) before filtering (default: false)
 %
 % Output:
 %   mtLFP - cell array {nCh x nTr}, each cell is [nFreq x nevents x nSamples]
@@ -36,12 +38,13 @@ p.addParameter('trind',       []);
 p.addParameter('tapers',      [0.5, 10], @isnumeric);
 p.addParameter('fs',          1e3,       @isnumeric);
 p.addParameter('fk',          20,        @isnumeric);
+p.addParameter('rmEvoked',    false, @islogical);
 
 p.parse(varargin{:});
 args = p.Results;
 
 Lfp = eventLFP(o, 'channels', args.channels, 'bn', args.bn, ...
-    'eventonsets', args.eventonsets, 'trind', args.trind);
+    'eventonsets', args.eventonsets, 'trind', args.trind, 'rmEvoked', args.rmEvoked);
 
 % wrap scalar output (single channel) back into a cell for uniform handling
 if ~iscell(Lfp), Lfp = {Lfp}; end

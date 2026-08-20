@@ -18,7 +18,7 @@ function [latencyEstimate,peakEstimate,pPoisson,baseRate,responseRate] = trialSp
 %   onsetvector =   a way of inputing an optional alingment time points, like
 %                   saccade times, onseted to start of trial > make sure its in ms from
 %                   trial start!
-%   trind       =   logical vector to tell which trials to use
+%   trind       =   vector of trial numbers to use (default: find(o.complete))
 %   bn          =   time bin around onset time. for latency estimation, first time bin
 %                   is the point at which latency calculation begins, so should start with
 %                   0 if you want to start counting from your alignment time (ie target
@@ -56,7 +56,7 @@ p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,500]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
-p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('trind',[]);
 
 p.addParameter('minTheta',2,@isnumeric);
 p.addParameter('maxTheta',[]);

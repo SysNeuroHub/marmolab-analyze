@@ -15,7 +15,7 @@ function [mtLFP, mtPhi] = trialmtLFP(o,varargin)
 %   onsetvector - a way of inputing an optional alingment time points, like
 %   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use
+%   trind = vector of trial numbers to use (default: find(o.complete))
 %   bn - time bin around onset time
 % 
 % multi taper inputs:

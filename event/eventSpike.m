@@ -16,7 +16,7 @@ function [Spike, chan_ind, unit_ind] = eventSpike(o,varargin)
 %  each trial)
 %   > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use
+%   trind = vector of trial numbers to use (default: find(o.complete))
 %   bn - time bin around onset time
 %
 % Output
@@ -32,7 +32,7 @@ p.addParameter('units',[],@(x) isnumeric(x) || isempty(x));
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('eventonsets',[]);
-p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('trind',[]);
 
 p.parse(varargin{:});
 
@@ -67,8 +67,8 @@ end
 
 %find which trials to use
 if isempty(args.trind)
-    if isprop(o,'complete'), trind = o.complete;
-    else, trind = true(1,o.spikes.numTrials);
+    if isprop(o,'complete'), trind = find(o.complete);
+    else, trind = 1:o.spikes.numTrials;
     end
 else, trind = args.trind;
 end
@@ -88,20 +88,19 @@ end
 
 Spike = cell(1,numel(chan_ind));
 
-trials = 1:o.spikes.numTrials;
-trials = trials(trind);
+trials = trind;
 bn = args.bn./1e3;
 
 for ich = 1:numel(chan_ind)
     channel = chan_ind(ich);
     unit = unit_ind(ich);
-    Spike{ich} = cell(1,sum(trind));
+    Spike{ich} = cell(1,numel(trials));
     for itr = 1:numel(trials)
         trial = trials(itr);
-        nevents = numel(args.eventonsets{itr});
+        nevents = numel(args.eventonsets{trial});
         Spike{ich}{itr} = cell(1,nevents);
         for iev = 1:nevents
-        start = args.eventonsets{itr}(iev)./1e3 + bn(1); % convert event to seconds
+        start = args.eventonsets{trial}(iev)./1e3 + bn(1); % convert event to seconds
         timestamps = o.spikes.spk{unit,trial,channel} - start;
         Spike{ich}{itr}{iev} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
         end

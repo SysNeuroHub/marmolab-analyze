@@ -10,9 +10,11 @@ function [Lfp] = eventLFP(o, varargin)
 %   channels    - channels to load (default: o.lfp.chanIds)
 %   eventonsets - cell array {1 x nTrials}, each cell a vector of event
 %                 onset times in ms from trial start
-%   trind       - logical trial-selection vector (default: o.complete)
+%   trind       - vector of trial numbers to use (default: find(o.complete))
 %   bn          - [pre post] time window in ms relative to each event onset
 %                 (default: [0 1000])
+%   rmEvoked    - if true, subtract the mean LFP across trials (per
+%                 channel) from each individual event's LFP (default: false)
 %
 % Output:
 %   Lfp - cell array {nCh x nTr}, each cell is [nevents x nSamples]
@@ -26,6 +28,7 @@ p.addParameter('channels',    [], @(x) isnumeric(x) || isempty(x));
 p.addParameter('bn',          [0, 1000]);
 p.addParameter('eventonsets', []);
 p.addParameter('trind',       []);
+p.addParameter('rmEvoked',    false, @islogical);
 
 p.parse(varargin{:});
 args = p.Results;
@@ -46,14 +49,14 @@ chan_ind = find(ix);
 lfps = o.lfp.get;   % [nSamples x nTrials x nCh]
 
 if isempty(args.trind)
-    if isprop(o, 'complete'), trind = o.complete;
-    else, trind = true(1, o.lfp.numTrials);
+    if isprop(o, 'complete'), trind = find(o.complete);
+    else, trind = 1:o.lfp.numTrials;
     end
 else
     trind = args.trind;
 end
 
-trials   = find(trind);
+trials   = trind;
 numTrial = numel(trials);
 nSamples = diff(args.bn) + 1;
 
@@ -77,7 +80,18 @@ for ich = 1:numel(chan_ind)
     end
 end
 
-if numel(chan_ind) == 1
+if args.rmEvoked
+    for ich = 1:numel(chan_ind)
+        meanLfp = mean(cat(1, Lfp{ich, :}), 1, 'omitnan');
+        for itr = 1:numTrial
+            if ~isempty(Lfp{ich, itr})
+                Lfp{ich, itr} = Lfp{ich, itr} - meanLfp;
+            end
+        end
+    end
+end
+
+if isscalar(chan_ind)
     Lfp = squeeze(Lfp);
 end
 

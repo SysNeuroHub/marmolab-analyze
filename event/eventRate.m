@@ -17,7 +17,7 @@ function [Rate, chan_ind, unit_ind] = eventRate(o,varargin)
 %  each trial)
 %   > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use (default:
+%   trind = vector of trial numbers to use (default:
 %   o.complete, if it exists, otherwise o.numTrials)
 %   bn - time bin around onset time
 %
@@ -35,7 +35,7 @@ p.addParameter('channels',[],@(x) isnumeric(x) || isempty(x)); %validateattribut
 p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('eventonsets',[]); %,@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.spikes.numTrials),'<=',max(o.spikes.numTrials)}));
-p.addParameter('trind',[]); %, @(x) validateattributes(x,{'logical'}))
+p.addParameter('trind',[]);
 
 p.parse(varargin{:});
 
@@ -53,8 +53,8 @@ end
 
 %find which trials to use
 if isempty(args.trind)
-    if isprop(o,'complete'), trind = o.complete;
-    else, trind = true(1,o.spikes.numTrials);
+    if isprop(o,'complete'), trind = find(o.complete);
+    else, trind = 1:o.spikes.numTrials;
     end
 else, trind = args.trind;
 end
@@ -74,6 +74,7 @@ end
 
 numChan = numel(Spikes);
 numTrial = numel(Spikes{1});
+trials = trind;
 % covert trial spikes to a rate (channels, trials)
 Rate = cell(numChan,numTrial);
 
@@ -81,7 +82,8 @@ bn = args.bn;
 
 for ich = 1:numChan
     for itr = 1:numTrial
-        numEvents = numel(args.eventonsets{itr});
+        trial = trials(itr);
+        numEvents = numel(args.eventonsets{trial});
         Rate{ich,itr} = nan(1,numEvents);
         for iev = 1:numEvents
         ind = Spikes{ich}{itr}{iev};

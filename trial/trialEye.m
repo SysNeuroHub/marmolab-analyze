@@ -11,7 +11,7 @@ function [x, y] = trialEye(o,varargin)
 %   onsetvector - a way of inputing an optional alingment time points, like
 %   saccade times, aligned to start of trial > make sure its in ms from
 %   trial start!
-%   trind = logical vector to tell which trials to use
+%   trind = vector of trial numbers to use (default: find(o.complete))
 %   bn - time bin around onset time
 %
 % Output
@@ -36,7 +36,7 @@ p.addParameter('onset','',@(x) ischar(x) || isempty(x));
 p.addParameter('bn',[0,1000]); %, @(x) validateattributes(x,{'numeric'},{'positive','==',2))
 p.addParameter('onsetvector',[],@(x) validateattributes(x,{'numeric'},{'positive','>=',min(o.lfp.numTrials),'<=',max(o.lfp.numTrials)}));
 p.addParameter('removeBlinks',true,@(x) validateattributes(x,{'logical'},{'nonempty'}));
-p.addParameter('trind',[]); % subset of trials to look at - vector with trial numbers
+p.addParameter('trind',[]); % vector of trial numbers to use
 
 p.parse(varargin{:});
 
@@ -44,8 +44,8 @@ args = p.Results;
 
 %find which trials to use
 if isempty(args.trind)
-    if isprop(o,'complete'), trind = o.complete;
-    else, trind = true(1,o.numTrials);
+    if isprop(o,'complete'), trind = find(o.complete);
+    else, trind = 1:o.numTrials;
     end
 else, trind = args.trind;
 end

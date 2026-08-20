@@ -12,7 +12,7 @@ function [x, y] = eventEye(o, varargin)
 % Optional arguments:
 %   eventonsets  - cell array {1 x nTrials}, each cell a vector of event
 %                  onset times in ms from trial start
-%   trind        - logical trial-selection vector (default: o.complete)
+%   trind        - vector of trial numbers to use (default: find(o.complete))
 %   bn           - [pre post] time window in ms relative to each event
 %                  onset (default: [0 1000])
 %   removeBlinks - remove blink artefacts via rmBlinks (default: true)
@@ -38,14 +38,14 @@ if isempty(args.eventonsets)
 end
 
 if isempty(args.trind)
-    if isprop(o, 'complete'), trind = o.complete;
-    else, trind = true(1, o.numTrials);
+    if isprop(o, 'complete'), trind = find(o.complete);
+    else, trind = 1:o.numTrials;
     end
 else
     trind = args.trind;
 end
 
-trials   = find(trind);
+trials   = trind;
 numTrial = numel(trials);
 
 samplesperms = o.eye(1).fs / 1e3;

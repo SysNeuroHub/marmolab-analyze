@@ -19,7 +19,7 @@ function [latencyEstimate, peakEstimate, pPoisson, baseRate, responseRate] = eve
 %   channels    - channels to analyse (default: o.spikes.chanIds)
 %   eventonsets - cell array {1 x nTrials}, each cell a vector of event
 %                 onset times in ms from trial start
-%   trind       - logical trial-selection vector (default: o.complete)
+%   trind       - vector of trial numbers to use (default: find(o.complete))
 %   bn          - [pre post] time window in ms; latency is estimated from
 %                 bn(1) to bn(2). Use [0 500] to start counting from the
 %                 event onset (default: [0 500])

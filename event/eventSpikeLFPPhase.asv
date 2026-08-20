@@ -105,7 +105,7 @@ if nFreq == 1 && strcmp(args.method, 'MT')
 end
 
 nCell = numel(Spike);
-nLFP  = size(lfpPhase,1);          % total LFP channels in output
+nLFP  = numel(lfpPhase);          % total LFP channels in output
 
 spikephase = cell(nFreq, nCell, nLFP);
 
