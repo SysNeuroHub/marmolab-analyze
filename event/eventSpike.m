@@ -88,7 +88,7 @@ end
 
 Spike = cell(1,numel(chan_ind));
 
-trials = trind;
+trials = find(trind);
 bn = args.bn./1e3;
 
 for ich = 1:numel(chan_ind)
@@ -97,10 +97,10 @@ for ich = 1:numel(chan_ind)
     Spike{ich} = cell(1,numel(trials));
     for itr = 1:numel(trials)
         trial = trials(itr);
-        nevents = numel(args.eventonsets{trial});
+        nevents = numel(args.eventonsets{itr});
         Spike{ich}{itr} = cell(1,nevents);
         for iev = 1:nevents
-        start = args.eventonsets{trial}(iev)./1e3 + bn(1); % convert event to seconds
+        start = args.eventonsets{itr}(iev)./1e3 + bn(1); % convert event to seconds
         timestamps = o.spikes.spk{unit,trial,channel} - start;
         Spike{ich}{itr}{iev} = timestamps(timestamps > 0 & timestamps < diff(bn)).*1e3; % convert to ms at the last minute 
         end

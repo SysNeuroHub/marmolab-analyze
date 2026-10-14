@@ -74,16 +74,15 @@ end
 
 numChan = numel(Spikes);
 numTrial = numel(Spikes{1});
-trials = trind;
-% covert trial spikes to a rate (channels, trials)
+%trials = find(trind);
+% convert trial spikes to a rate (channels, trials)
 Rate = cell(numChan,numTrial);
 
 bn = args.bn;
 
 for ich = 1:numChan
     for itr = 1:numTrial
-        trial = trials(itr);
-        numEvents = numel(args.eventonsets{trial});
+        numEvents = numel(args.eventonsets{itr});
         Rate{ich,itr} = nan(1,numEvents);
         for iev = 1:numEvents
         ind = Spikes{ich}{itr}{iev};
